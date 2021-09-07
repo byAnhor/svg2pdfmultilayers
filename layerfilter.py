@@ -60,12 +60,12 @@ class LayerFilter:
         
         if generatea0:
 
-            print('-------------- G E N E R A T E --- A 0 -----------------')
+            print('-------------- G E N E R A T E --- A 0 -----------------', outdocpathA0)
+            
 
             doc = fitz.open()  
             xrefOCG = dict()                   
             for k in self.onelayersvg.keys(): 
-                print(k + ' => ' + str(self.onelayersvg[k]))
                 xrefOCG[k] = doc.add_ocg('%s'%k)
             page = doc.new_page(-1, width = self.rect.width, height = self.rect.height)
             doc.save(outdocpathA0)
@@ -76,7 +76,7 @@ class LayerFilter:
             try:
                 for k in self.onelayersvg.keys(): 
                     curfilename = self.onelayersvg[k].replace('.svg', '.fitz.pdf')
-                    print(curfilename)
+                    print('Temporary create file ', curfilename)
                     tempsvg = fitz.open(curfilename)
                     pdfbytes = tempsvg.convert_to_pdf()
                     tempsvg.close()
@@ -88,7 +88,7 @@ class LayerFilter:
             except: doc.close()
             
         if generatea4:
-            print('-------------- G E N E R A T E --- A 4 -----------------')
+            print('-------------- G E N E R A T E --- A 4 -----------------', outdocpathA4)
             
             if self.canvas is None:
                 print('Please choose a canvas for A4 generation')
@@ -191,17 +191,15 @@ class LayerFilter:
 
             doc = fitz.open(outdocpathA4)  
             try:
+                print(_('Generate the canvas on each page = central panel + (right/left/down/up) if existing + LxCy textbox'))
                 for w in range(sheetW):
                     for h in range(sheetH):
                         idwh = 'L%sC%s '%(h,w)
-                        print('%s : page %s'%(idwh,pageNumDico[idwh]), 'Canvas')
                         pagei = doc.load_page(pageNumDico[idwh])
                         tempsvg = fitz.open(canvaspdffilename)
                         pdfbytes = tempsvg.convert_to_pdf()
                         tempsvg.close()
                         tempsvg = fitz.open("pdf", pdfbytes) 
-                        
-                        print(pageRectDico[idwh]['CenterForCanvas'])
                         
                         pagei.show_pdf_page(pageRectDico[idwh]['CenterForCanvas'], tempsvg, 0, oc=xrefOCGA4In)
                             
@@ -231,11 +229,11 @@ class LayerFilter:
                     pdfbytes = tempsvg.convert_to_pdf()
                     tempsvg.close()
                     tempsvg = fitz.open("pdf", pdfbytes) 
+                    print(_('Generate the layer %s on each page = central panel + (right/left/down/up) if existing')%k)
                     for w in range(sheetW):
                         for h in range(sheetH):
                             idwh = 'L%sC%s '%(h,w)
                             curPage = pageNumDico[idwh] 
-                            print('%s : page %s'%(idwh,pageNumDico[idwh]), 'Pattern')
                             pagei = doc.load_page(curPage)
                             
                             pagei.show_pdf_page(pageRectDico[idwh]['CenterForPattern'], tempsvg, 0, oc=xrefOCG[k], clip=patternClipDico[idwh]['Center'])
@@ -261,19 +259,7 @@ class LayerFilter:
                 print(_('Exception') + ':')
                 print(e)
 
-        
-
-                    
-                
-
-            '''
-            page0 = doc.load_page(0)
-            print('input rect', self.rect)
-            print(self.rect.get_area('cm'))
-            print("get_xml_metadata", doc.get_xml_metadata())'''
-
-            
-
+        print(_('Done !'))
         return outdocpath
 
 
