@@ -10,19 +10,27 @@
 import wx
 import os
 import sys
+import shutil
 import pikepdf
 import fitz
 from xml.dom import minidom
-from reportlab.graphics import renderPDF
-from svglib.svglib import svg2rlg
 import utils
 from layerfilter import LayerFilter
 from iotab import IOTab
 
+try:
+    import pyi_splash
+    pyi_splash.update_text('UI Loaded ...')
+    pyi_splash.close()
+except:
+    pass
+        
 class byAnhorGUI(wx.Frame):
+        
     def __init__(self, *args, **kw):
         # ensure the parent's __init__ is called
         super(byAnhorGUI, self).__init__(*args, **kw)
+        self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.CLOSE_BOX)
 
         # split the bottom half from the notebook top
         splitter = wx.SplitterWindow(self,style=wx.SP_LIVE_UPDATE)
@@ -37,11 +45,15 @@ class byAnhorGUI(wx.Frame):
         vert_sizer = wx.BoxSizer(wx.VERTICAL)
         pnl.SetSizer(vert_sizer)
 
-        # the go button
+        # the go button and exit button
         go_btn = wx.Button(pnl, label=_('Generate PDF'))
         go_btn.SetFont(go_btn.GetFont().Bold())
         go_btn.Bind(wx.EVT_BUTTON,self.on_go_pressed)
         vert_sizer.Add(go_btn,flag=wx.ALL,border=5)
+        bye_btn = wx.Button(pnl, label=_('Exit !'))
+        bye_btn.SetFont(bye_btn.GetFont().Bold())
+        bye_btn.Bind(wx.EVT_BUTTON,self.on_bye_pressed)
+        vert_sizer.Add(bye_btn,flag=wx.ALL,border=5)
 
         # create a log window and redirect console output
         self.log = wx.TextCtrl(pnl, style=wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
@@ -55,12 +67,22 @@ class byAnhorGUI(wx.Frame):
 
         self.working_dir = os.getcwd()
 
+        if sys.platform == 'win32' or sys.platform == 'linux':
+            self.SetIcon(wx.Icon(utils.resource_path('icon.ico')))
+
+        self.doc_in = None
+        self.out_doc_path = None
+        
         if len(sys.argv) > 1:
             self.load_file(sys.argv[1])
         
         if len(sys.argv) > 2:
             self.out_doc_path = sys.argv[2]
             self.io.output_fname_display.SetLabel(sys.argv[2])
+
+        if len(sys.argv) > 3:
+            self.load_canvas_file(sys.argv[3])
+            
         
     def on_open(self, event):
         with wx.FileDialog(self, _('Select input SVG'), defaultDir=self.working_dir,
@@ -73,9 +95,25 @@ class byAnhorGUI(wx.Frame):
             # Proceed loading the file chosen by the user
             pathname = fileDialog.GetPath()
             self.load_file(pathname)
+            
+    def on_open_canvas(self, event):
+        with wx.FileDialog(self, _('Select input A4 SVG canvas'), defaultDir=self.working_dir,
+                        wildcard='SVG files (*.svg)|*.svg',
+                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+            # Proceed loading the file chosen by the user
+            pathname = fileDialog.GetPath()
+            self.load_canvas_file(pathname)
+
+    def load_canvas_file(self,pathname):
+            self.canvas = pathname
+            self.io.load_new_canvas(self.canvas)
+            self.layer_filter.set_canvas(self.canvas)
 
     def load_file(self,pathname):
-        self.working_dir = os.path.dirname(pathname)
         try:
             # open the svg
             print(_('Opening') + ' ' + pathname)
@@ -113,13 +151,21 @@ class byAnhorGUI(wx.Frame):
                 wx.LogError(_('unable to write to') + pathname)
                 
     def one_pdf_per_layer(self, svgInput):
-        
+
+        svgInputPath = os.path.dirname(svgInput)
+        svgInputBase = os.path.basename(svgInput)
+        svgInputFile = svgInputBase.replace('.svg','')
+        self.temp_path = '%s/temp/'%svgInputPath
+        if not os.path.exists(self.temp_path):
+            os.makedirs(self.temp_path)
+            
         tempsvg = fitz.open(svgInput)
         page = tempsvg.load_page(0)
         self.rect = page.rect
-        #tempsvg = tempsvg.convert_to_pdf()
-        #tempsvg = fitz.open("pdf", tempsvg)
-        #tempsvg.save(svgInput.replace('.svg', '.fitz.pdf'))
+           
+        tempsvg = tempsvg.convert_to_pdf()
+        tempsvg = fitz.open("pdf", tempsvg)
+        tempsvg.save(self.temp_path + svgInputFile + '.fitz.pdf')
         
         doc = minidom.parse(svgInput)
         allL = [l for l in doc.getElementsByTagName('g') if l.getAttribute("inkscape:groupmode") == 'layer']
@@ -133,7 +179,7 @@ class byAnhorGUI(wx.Frame):
                     parent = ol.parentNode
                     parent.removeChild(ol)
                     str_ = doc0.toxml()
-                    layersvgfilename = svgInput.replace('.svg', 'LAYER_%s.svg'%(l.getAttribute("id")))
+                    layersvgfilename = self.temp_path + svgInputFile + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
                     self.onelayersvg[l.getAttribute("id")] = str(layersvgfilename)
                     with open(layersvgfilename, "w") as out:
                         out.write(str_) 
@@ -148,22 +194,38 @@ class byAnhorGUI(wx.Frame):
 
             
     def on_go_pressed(self,event):
+        if self.in_doc is None:
+            print(_('Please select INPUT svg file before'))
+            return 
+        if self.in_doc is None:
+            print(_('Please select OUTPUT pdf file before'))
+            return 
+        
         # retrieve the selected options
         if self.out_doc_path is None:
             self.on_output(event)
-            
             if self.out_doc_path is None:
                 return
 
         # do it
         try:
-            filtered = self.layer_filter.run(self.out_doc_path)
+            filtered = self.layer_filter.run(self.out_doc_path, self.io.generate_a0_checked, self.io.generate_a4_checked)
         except Exception as e:
             print(_('Something went wrong'))
             print(_('Exception') + ':')
             print(e)
+
+    def on_bye_pressed(self,event):
+        print(_('BYE !!!!!!!!!!!!!!!!!'))
+        try:
+            shutil.rmtree(self.temp_path)
+        except Exception as e:
+            print(_('Something went wrong'))
+            print(_('Exception') + ':')
+            print(e)
+        self.Destroy()
         
-            
+           
 if __name__ == '__main__':
     # When this module is run (not imported) then create the app, the
     # frame, show it, and start the event loop.
