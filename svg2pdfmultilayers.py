@@ -18,6 +18,13 @@ import utils
 from layerfilter import LayerFilter
 from iotab import IOTab
 
+try:
+    import pyi_splash
+    pyi_splash.update_text('UI Loaded ...')
+    pyi_splash.close()
+except:
+    pass
+        
 class byAnhorGUI(wx.Frame):
         
     def __init__(self, *args, **kw):
@@ -63,6 +70,9 @@ class byAnhorGUI(wx.Frame):
         if sys.platform == 'win32' or sys.platform == 'linux':
             self.SetIcon(wx.Icon(utils.resource_path('icon.ico')))
 
+        self.doc_in = None
+        self.out_doc_path = None
+        
         if len(sys.argv) > 1:
             self.load_file(sys.argv[1])
         
@@ -72,6 +82,7 @@ class byAnhorGUI(wx.Frame):
 
         if len(sys.argv) > 3:
             self.load_canvas_file(sys.argv[3])
+            
         
     def on_open(self, event):
         with wx.FileDialog(self, _('Select input SVG'), defaultDir=self.working_dir,
@@ -148,12 +159,9 @@ class byAnhorGUI(wx.Frame):
         if not os.path.exists(self.temp_path):
             os.makedirs(self.temp_path)
             
-        print(svgInputPath, svgInputFile)
-
         tempsvg = fitz.open(svgInput)
         page = tempsvg.load_page(0)
         self.rect = page.rect
-        print('page.rect', page.rect)
            
         tempsvg = tempsvg.convert_to_pdf()
         tempsvg = fitz.open("pdf", tempsvg)
@@ -186,6 +194,13 @@ class byAnhorGUI(wx.Frame):
 
             
     def on_go_pressed(self,event):
+        if self.in_doc is None:
+            print(_('Please select INPUT svg file before'))
+            return 
+        if self.in_doc is None:
+            print(_('Please select OUTPUT pdf file before'))
+            return 
+        
         # retrieve the selected options
         if self.out_doc_path is None:
             self.on_output(event)
@@ -210,7 +225,7 @@ class byAnhorGUI(wx.Frame):
             print(e)
         self.Destroy()
         
-            
+           
 if __name__ == '__main__':
     # When this module is run (not imported) then create the app, the
     # frame, show it, and start the event loop.

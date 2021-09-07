@@ -7,7 +7,7 @@ block_cipher = None
 a = Analysis(['svg2pdfmultilayers.py'],
              pathex=['C:\\Users\\anita\\Documents\\GITHub\\SVG_PDF_Multilayers'],
              binaries=[],
-             datas=[('*.py', 'sources'), 'ressources/canevasa4.svg'],
+             datas=[('*.py', 'sources')],
              hiddenimports=[],
              hookspath=[],
              hooksconfig={},
@@ -17,10 +17,20 @@ a = Analysis(['svg2pdfmultilayers.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+             
+a.datas += [('icon.ico','C:\\Users\\anita\\Documents\\GITHub\\SVG_PDF_Multilayers\\icon.ico','DATA')]
+             
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
-
+             
+splash = Splash('ressources/splach.png',
+                binaries=a.binaries,
+                datas=a.datas,
+                text_pos=(10, 50),
+                text_size=12,
+                text_color='black')
 exe = EXE(pyz,
+          splash,
           a.scripts,
           a.binaries,
           a.zipfiles,
