@@ -62,7 +62,7 @@ class byAnhorGUI(wx.Frame):
         sys.stderr = self.log
         
         splitter.SplitHorizontally(nb,pnl)
-        splitter.SetSashPosition(int(kw['size'][1]*1/4))
+        splitter.SetSashPosition(int(kw['size'][1]*3/4))
         splitter.SetMinimumPaneSize(10)
 
         self.working_dir = os.getcwd()
@@ -79,9 +79,14 @@ class byAnhorGUI(wx.Frame):
         if len(sys.argv) > 2:
             self.out_doc_path = sys.argv[2]
             self.io.output_fname_display.SetLabel(sys.argv[2])
+            self.io.on_generate_a0a4_checked(event=None)
 
         if len(sys.argv) > 3:
             self.load_canvas_file(sys.argv[3])
+
+        self.io.on_generate_assembly_mark_checked(event=None)
+        self.io.on_generate_assembly_page_checked(event=None)
+        self.io.on_generate_order_leftright_or_leftright_toggle(event=None)        
             
         
     def on_open(self, event):
@@ -209,7 +214,7 @@ class byAnhorGUI(wx.Frame):
 
         # do it
         try:
-            filtered = self.layer_filter.run(self.out_doc_path, self.io.generate_a0_checked, self.io.generate_a4_checked)
+            filtered = self.layer_filter.run(self.out_doc_path, self.io.generate_a0_checked, self.io.generate_a4_checked, self.io.generate_assembly_page_choice, self.io.generate_order_leftright_or_leftright, self.io.generate_assembly_mark_choice)
         except Exception as e:
             print(_('Something went wrong'))
             print(_('Exception') + ':')
