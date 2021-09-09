@@ -261,9 +261,9 @@ class LayerFilter:
                             txt['UU'],txt['DD'],txt['LL'],txt['RR'] = txt['U'],txt['D'],txt['L'],txt['R']
                             
                         # Annote page number neighbourhood
-                        self.upmark(pageRectDico[idwh]['CenterForCanvas'], pagei, txt, xrefOCGA4In , xrefOCGA4Out, h > 0 and generateassemblypagechoice == 0)
+                        self.upmark(pageRectDico[idwh]['CenterForCanvas'], pagei, txt, xrefOCGA4In , xrefOCGA4Out, h > 0)
                         self.downmark(pageRectDico[idwh]['CenterForCanvas'], pagei, txt, xrefOCGA4In , xrefOCGA4Out, h < sheetH-1)
-                        self.leftmark(pageRectDico[idwh]['CenterForCanvas'], pagei, txt, xrefOCGA4In , xrefOCGA4Out, w > 0 and generateassemblypagechoice == 0)
+                        self.leftmark(pageRectDico[idwh]['CenterForCanvas'], pagei, txt, xrefOCGA4In , xrefOCGA4Out, w > 0)
                         self.rightmark(pageRectDico[idwh]['CenterForCanvas'], pagei, txt, xrefOCGA4In , xrefOCGA4Out, w < sheetW-1)
                     
                     doc.saveIncr()
