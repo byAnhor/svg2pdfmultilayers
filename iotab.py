@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # svg2pdfmultilayers is a utility to export multilayered SVG to PDF.
 # Copyright (C) 2021 Anita Orhand
 #
