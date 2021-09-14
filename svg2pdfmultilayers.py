@@ -85,6 +85,7 @@ class byAnhorGUI(wx.Frame):
         if len(sys.argv) > 3:
             self.load_canvas_file(sys.argv[3])
 
+        self.io.on_generate_hidden_layers_checked(event=None)
         self.io.on_generate_assembly_mark_checked(event=None)
         self.io.on_generate_assembly_page_checked(event=None)
         self.io.on_generate_order_leftright_or_leftright_toggle(event=None)        
@@ -185,7 +186,8 @@ class byAnhorGUI(wx.Frame):
                     parent = ol.parentNode
                     parent.removeChild(ol)
                     str_ = doc0.toxml()
-                    layersvgfilename = self.temp_path + svgInputFile + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
+                    displayStr = "_hidden" if "display:none" in l.getAttribute("style") else "_show"
+                    layersvgfilename = self.temp_path + svgInputFile + displayStr + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
                     self.onelayersvg[l.getAttribute("id")] = str(layersvgfilename)
                     with open(layersvgfilename, "wb") as out:
                         out.write(str_.encode("UTF-8", "ignore")) 
@@ -215,7 +217,7 @@ class byAnhorGUI(wx.Frame):
 
         # do it
         try:
-            filtered = self.layer_filter.run(self.out_doc_path, self.io.generate_a0_checked, self.io.generate_a4_checked, self.io.generate_assembly_page_choice, self.io.generate_order_leftright_or_leftright, self.io.generate_assembly_mark_choice)
+            filtered = self.layer_filter.run(self.out_doc_path, self.io.generate_hidden_layers_checked, self.io.generate_a0_checked, self.io.generate_a4_checked, self.io.generate_assembly_page_choice, self.io.generate_order_leftright_or_leftright, self.io.generate_assembly_mark_choice)
         except Exception as e:
             print(_('Something went wrong'))
             print(_('Exception') + ':')

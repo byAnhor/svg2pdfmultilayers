@@ -6,10 +6,21 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import sys
+import os
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.buttons as buts
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 class IOTab(scrolled.ScrolledPanel):
     def __init__(self,parent,main_gui):
@@ -20,7 +31,7 @@ class IOTab(scrolled.ScrolledPanel):
         # add the various parameter inputs
         # Display the selected PDF
         newline = wx.BoxSizer(wx.HORIZONTAL)
-        in_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap("ressources/openXS.ico"), label= "Select input SVG with layers")
+        in_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("openXS.ico")), label= "Select input SVG with layers")
         in_doc_btn.Bind(wx.EVT_BUTTON,main_gui.on_open)
         newline.Add(in_doc_btn, flag=wx.ALIGN_CENTRE_VERTICAL)
         self.input_fname_display = wx.StaticText(self, label=_('None'))
@@ -28,11 +39,18 @@ class IOTab(scrolled.ScrolledPanel):
         vert_sizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
 
         newline = wx.BoxSizer(wx.HORIZONTAL)
-        out_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap("ressources/savepdfXS.ico"), label= "Save output as PDF")
+        out_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("savepdfXS.ico")), label= "Save output as PDF")
         out_doc_btn.Bind(wx.EVT_BUTTON,main_gui.on_output)
         newline.Add(out_doc_btn, flag=wx.ALIGN_CENTRE_VERTICAL)
         self.output_fname_display = wx.StaticText(self, label=_('None'))
         newline.Add(self.output_fname_display, flag=wx.ALIGN_CENTRE_VERTICAL|wx.LEFT, border=5)
+        vert_sizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
+
+        newline = wx.BoxSizer(wx.HORIZONTAL)
+        self.generate_hidden_layers = wx.CheckBox(self,label=_('Generate hidden layers'))
+        self.generate_hidden_layers.SetValue(0)
+        self.generate_hidden_layers.Bind(wx.EVT_CHECKBOX,self.on_generate_hidden_layers_checked)
+        newline.Add(self.generate_hidden_layers, flag=wx.ALL, border=10)
         vert_sizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
 
         self.boxA0 = wx.StaticBox(self,label='Full size PDF generation')
@@ -76,7 +94,6 @@ class IOTab(scrolled.ScrolledPanel):
         boxorder = wx.StaticBox(self,label='Generation order')
         boxordersizer = wx.StaticBoxSizer(boxorder, wx.VERTICAL)
         self.generate_order_leftright_or_leftright_toggle = wx.ToggleButton(self)
-        self.generate_order_leftright_or_leftright_toggle.SetBitmap(wx.Bitmap("ressources/leftright.png"))
         self.generate_order_leftright_or_leftright_toggle.Bind(wx.EVT_TOGGLEBUTTON,self.on_generate_order_leftright_or_leftright_toggle) 
         self.generate_order_leftright_or_leftright_toggle.SetValue(True)
         boxordersizer.Add(self.generate_order_leftright_or_leftright_toggle, flag=wx.ALL, border=10)
@@ -101,7 +118,10 @@ class IOTab(scrolled.ScrolledPanel):
         
     def load_new_canvas(self,filename):
         self.input_canevas_fname_display.SetLabel(filename)
-         
+        
+    def on_generate_hidden_layers_checked(self,event):
+        self.generate_hidden_layers_checked = bool(self.generate_hidden_layers.GetValue())
+        
     def on_generate_a0a4_checked(self,event):
         self.generate_a0_checked = bool(self.generate_a0.GetValue())
         self.generate_a4_checked = bool(self.generate_a4.GetValue())
@@ -125,7 +145,7 @@ class IOTab(scrolled.ScrolledPanel):
     def on_generate_order_leftright_or_leftright_toggle(self,event):
         self.generate_order_leftright_or_leftright = self.generate_order_leftright_or_leftright_toggle.GetValue()
         if self.generate_order_leftright_or_leftright_toggle.GetValue():
-            self.generate_order_leftright_or_leftright_toggle.SetBitmap(wx.Bitmap("ressources/leftright.png"))
+            self.generate_order_leftright_or_leftright_toggle.SetBitmap(wx.Bitmap(resource_path("leftright.png")))
         else:
-            self.generate_order_leftright_or_leftright_toggle.SetBitmap(wx.Bitmap("ressources/topdown.png"))
+            self.generate_order_leftright_or_leftright_toggle.SetBitmap(wx.Bitmap(resource_path("topdown.png")))
         
