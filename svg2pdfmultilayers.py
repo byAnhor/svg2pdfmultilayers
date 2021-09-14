@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #! /usr/bin/env python3
 
 # svg2pdfmultilayers is a utility to export multilayered SVG to PDF.
@@ -188,8 +189,8 @@ class byAnhorGUI(wx.Frame):
                     displayStr = "_hidden" if "display:none" in l.getAttribute("style") else "_show"
                     layersvgfilename = self.temp_path + svgInputFile + displayStr + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
                     self.onelayersvg[l.getAttribute("id")] = str(layersvgfilename)
-                    with open(layersvgfilename, "w") as out:
-                        out.write(str_) 
+                    with open(layersvgfilename, "wb") as out:
+                        out.write(str_.encode("UTF-8", "ignore")) 
 
         for k in self.onelayersvg.keys(): 
             curfilename = self.onelayersvg[k]
