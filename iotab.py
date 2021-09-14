@@ -45,6 +45,13 @@ class IOTab(scrolled.ScrolledPanel):
         newline.Add(self.output_fname_display, flag=wx.ALIGN_CENTRE_VERTICAL|wx.LEFT, border=5)
         vert_sizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
 
+        newline = wx.BoxSizer(wx.HORIZONTAL)
+        self.generate_hidden_layers = wx.CheckBox(self,label=_('Generate hidden layers'))
+        self.generate_hidden_layers.SetValue(0)
+        self.generate_hidden_layers.Bind(wx.EVT_CHECKBOX,self.on_generate_hidden_layers_checked)
+        newline.Add(self.generate_hidden_layers, flag=wx.ALL, border=10)
+        vert_sizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
+
         self.boxA0 = wx.StaticBox(self,label='Full size PDF generation')
         boxA0sizer = wx.StaticBoxSizer(self.boxA0, wx.VERTICAL)
         self.generate_a0 = wx.CheckBox(self,label=_('Generate full size PDF'))
@@ -110,7 +117,10 @@ class IOTab(scrolled.ScrolledPanel):
         
     def load_new_canvas(self,filename):
         self.input_canevas_fname_display.SetLabel(filename)
-         
+        
+    def on_generate_hidden_layers_checked(self,event):
+        self.generate_hidden_layers_checked = bool(self.generate_hidden_layers.GetValue())
+        
     def on_generate_a0a4_checked(self,event):
         self.generate_a0_checked = bool(self.generate_a0.GetValue())
         self.generate_a4_checked = bool(self.generate_a4.GetValue())

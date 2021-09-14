@@ -54,7 +54,7 @@ class LayerFilter:
         return fitz.Rect(r.x1, r.y0, r.x1 + d, r.y1)
     
                
-    def run(self, outdocpath, generatea0, generatea4, generateassemblypagechoice, generateorderleftrightorleftright, generateassemblymarkchoice):
+    def run(self, outdocpath, generatehiddenlayers, generatea0, generatea4, generateassemblypagechoice, generateorderleftrightorleftright, generateassemblymarkchoice):
         
         outdocpathA0 = outdocpath.replace('.pdf', '.A0.pdf')
         outdocpathA4 = outdocpath.replace('.pdf', '.A4.pdf')
@@ -67,7 +67,8 @@ class LayerFilter:
             doc = fitz.open()  
             xrefOCG = dict()                   
             for k in self.onelayersvg.keys(): 
-                xrefOCG[k] = doc.add_ocg('%s'%k)
+                if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
+                    xrefOCG[k] = doc.add_ocg('%s'%k)
             page = doc.new_page(-1, width = self.rect.width, height = self.rect.height)
             doc.save(outdocpathA0)
             doc.close()
@@ -76,15 +77,17 @@ class LayerFilter:
             page0 = doc.load_page(0)
             try:
                 for k in self.onelayersvg.keys(): 
-                    curfilename = self.onelayersvg[k].replace('.svg', '.fitz.pdf')
-                    print('Temporary create file ', curfilename)
-                    tempsvg = fitz.open(curfilename)
-                    pdfbytes = tempsvg.convert_to_pdf()
-                    tempsvg.close()
-                    tempsvg = fitz.open("pdf", pdfbytes) 
-                    page0.show_pdf_page(self.rect, tempsvg, 0, oc=xrefOCG[k])
-                    tempsvg.close()
-                    doc.saveIncr()
+                    if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
+                        curfilename = self.onelayersvg[k].replace('.svg', '.fitz.pdf')
+                        print('Temporary create file ', curfilename)
+                        tempsvg = fitz.open(curfilename)
+                        pdfbytes = tempsvg.convert_to_pdf()
+                        tempsvg.close()
+                        tempsvg = fitz.open("pdf", pdfbytes) 
+                        page0.show_pdf_page(self.rect, tempsvg, 0, oc=xrefOCG[k])
+                        tempsvg.close()
+                        doc.saveIncr()
+                    else: print('Hidden', k)
                 doc.close()
             except: doc.close()
             
@@ -120,8 +123,9 @@ class LayerFilter:
             doc = fitz.open()  
             xrefOCG = dict()                   
             for k in self.onelayersvg.keys(): 
-                print(k + ' => ' + str(self.onelayersvg[k]))
-                xrefOCG[k] = doc.add_ocg('%s'%k)
+                if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
+                    print(k + ' => ' + str(self.onelayersvg[k]))
+                    xrefOCG[k] = doc.add_ocg('%s'%k)
             xrefOCGA4In = doc.add_ocg('A4CanvasIn')
             xrefOCGA4Out = doc.add_ocg('A4CanvasOut')
             for p in range(len(pageorder)):
@@ -277,53 +281,54 @@ class LayerFilter:
             try:
                 doc = fitz.open(outdocpathA4)  
                 for k in self.onelayersvg.keys(): 
-                    curfilename = self.onelayersvg[k].replace('.svg', '.fitz.pdf')
-                    tempsvg = fitz.open(curfilename)
-                    pdfbytes = tempsvg.convert_to_pdf()
-                    tempsvg.close()
-                    tempsvg = fitz.open("pdf", pdfbytes) 
-                    print(_('Generate the layer %s on each page = central panel + (right/left/down/up) if existing')%k)
-                    for h,w in pageorder:
-                        idwh = 'L%sC%s '%(h,w)
-                        curPage = pageNumDico[idwh] 
-                        pagei = doc.load_page(curPage)
-                        
-                        pagei.show_pdf_page(pageRectDico[idwh]['CenterForPattern'], tempsvg, 0, oc=xrefOCG[k], clip=patternClipDico[idwh]['Center'])
-                        
-                        if w < sheetW - 1:
-                            try: 
-                                pagei.show_pdf_page(pageRectDico[idwh]['RightForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Right'])
-                                shape = pagei.new_shape()
-                                shape.draw_rect(pageRectDico[idwh]['RightForCanvas'])
-                                shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
-                                shape.commit()
-                            except Exception as e: print('Warning : Cannot add RIGHT margin to %s'%idwh)
-                        if h < sheetH - 1:
-                            try: 
-                                pagei.show_pdf_page(pageRectDico[idwh]['DownForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Down'])
-                                shape = pagei.new_shape()
-                                shape.draw_rect(pageRectDico[idwh]['DownForCanvas'])
-                                shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
-                                shape.commit()
-                            except Exception as e: print('Warning : Cannot add DOWN margin to %s'%idwh)
-                        if w > 0 and generateassemblypagechoice == 0:
-                            try: 
-                                pagei.show_pdf_page(pageRectDico[idwh]['LeftForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Left'])
-                                shape = pagei.new_shape()
-                                shape.draw_rect(pageRectDico[idwh]['LeftForCanvas'])
-                                shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
-                                shape.commit()
-                            except Exception as e: print('Warning : Cannot add LEFT margin to %s'%idwh)
-                        if h > 0 and generateassemblypagechoice == 0:
-                            try:
-                                pagei.show_pdf_page(pageRectDico[idwh]['UpForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Up'])
-                                shape = pagei.new_shape()
-                                shape.draw_rect(pageRectDico[idwh]['UpForCanvas'])
-                                shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
-                                shape.commit()
-                            except Exception as e: print('Warning : Cannot add UP margin to %s'%idwh)
-                    tempsvg.close()
-                    doc.saveIncr()
+                    if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
+                        curfilename = self.onelayersvg[k].replace('.svg', '.fitz.pdf')
+                        tempsvg = fitz.open(curfilename)
+                        pdfbytes = tempsvg.convert_to_pdf()
+                        tempsvg.close()
+                        tempsvg = fitz.open("pdf", pdfbytes) 
+                        print(_('Generate the layer %s on each page = central panel + (right/left/down/up) if existing')%k)
+                        for h,w in pageorder:
+                            idwh = 'L%sC%s '%(h,w)
+                            curPage = pageNumDico[idwh] 
+                            pagei = doc.load_page(curPage)
+                            
+                            pagei.show_pdf_page(pageRectDico[idwh]['CenterForPattern'], tempsvg, 0, oc=xrefOCG[k], clip=patternClipDico[idwh]['Center'])
+                            
+                            if w < sheetW - 1:
+                                try: 
+                                    pagei.show_pdf_page(pageRectDico[idwh]['RightForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Right'])
+                                    shape = pagei.new_shape()
+                                    shape.draw_rect(pageRectDico[idwh]['RightForCanvas'])
+                                    shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
+                                    shape.commit()
+                                except Exception as e: print('Warning : Cannot add RIGHT margin to %s'%idwh)
+                            if h < sheetH - 1:
+                                try: 
+                                    pagei.show_pdf_page(pageRectDico[idwh]['DownForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Down'])
+                                    shape = pagei.new_shape()
+                                    shape.draw_rect(pageRectDico[idwh]['DownForCanvas'])
+                                    shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
+                                    shape.commit()
+                                except Exception as e: print('Warning : Cannot add DOWN margin to %s'%idwh)
+                            if w > 0 and generateassemblypagechoice == 0:
+                                try: 
+                                    pagei.show_pdf_page(pageRectDico[idwh]['LeftForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Left'])
+                                    shape = pagei.new_shape()
+                                    shape.draw_rect(pageRectDico[idwh]['LeftForCanvas'])
+                                    shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
+                                    shape.commit()
+                                except Exception as e: print('Warning : Cannot add LEFT margin to %s'%idwh)
+                            if h > 0 and generateassemblypagechoice == 0:
+                                try:
+                                    pagei.show_pdf_page(pageRectDico[idwh]['UpForPattern'], tempsvg, 0, oc=xrefOCG[k], overlays=False, clip=patternClipDico[idwh]['Up'])
+                                    shape = pagei.new_shape()
+                                    shape.draw_rect(pageRectDico[idwh]['UpForCanvas'])
+                                    shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.2)
+                                    shape.commit()
+                                except Exception as e: print('Warning : Cannot add UP margin to %s'%idwh)
+                        tempsvg.close()
+                        doc.saveIncr()
                 doc.close()
             except Exception as e:
                 doc.close()
