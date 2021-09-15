@@ -126,6 +126,9 @@ class IOTab(scrolled.ScrolledPanel):
         self.generate_a0_checked = bool(self.generate_a0.GetValue())
         self.generate_a4_checked = bool(self.generate_a4.GetValue())
         self.in_canvas_doc_btn.Enable(self.generate_a4_checked)
+        self.generate_order_leftright_or_leftright_toggle.Enable(self.generate_a4_checked)
+        self.generate_assembly_mark.Enable(self.generate_a4_checked)
+        self.generate_assembly_page.Enable(self.generate_a4_checked)
         self.input_canevas_fname_display.Enable(self.generate_a4_checked)
         if self.generate_a0_checked and self.output_fname_display.Label != 'None':
             self.boxA0.SetLabel("Full size PDF generation : %s"%self.output_fname_display.Label.replace('.pdf', '.A0.pdf'))
