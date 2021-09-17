@@ -18,7 +18,13 @@ a = Analysis(['svg2pdfmultilayers.py'],
              cipher=block_cipher,
              noarchive=False)
              
-a.datas += [('icon.ico','C:\\Users\\anita\\Documents\\GITHub\\SVG_PDF_Multilayers\\icon.ico','DATA')]
+a.datas += [('icon.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\icon.ico','DATA')]
+a.datas += [('openXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\openXS.ico','DATA')]
+a.datas += [('savepdfXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\savepdfXS.ico','DATA')]
+a.datas += [('topdown.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\topdown.png','DATA')]
+a.datas += [('leftright.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\leftright.png','DATA')]
+a.datas += [('portrait.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\portrait.png','DATA')]
+a.datas += [('landscape.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\landscape.png','DATA')]
              
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)

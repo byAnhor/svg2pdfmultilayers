@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #! /usr/bin/env python3
 
 # svg2pdfmultilayers is a utility to export multilayered SVG to PDF.
@@ -62,7 +63,7 @@ class byAnhorGUI(wx.Frame):
         sys.stderr = self.log
         
         splitter.SplitHorizontally(nb,pnl)
-        splitter.SetSashPosition(int(kw['size'][1]*1/4))
+        splitter.SetSashPosition(int(kw['size'][1]*3/4))
         splitter.SetMinimumPaneSize(10)
 
         self.working_dir = os.getcwd()
@@ -79,9 +80,12 @@ class byAnhorGUI(wx.Frame):
         if len(sys.argv) > 2:
             self.out_doc_path = sys.argv[2]
             self.io.output_fname_display.SetLabel(sys.argv[2])
+            self.io.on_generate_a0a4_checked(event=None)
 
-        if len(sys.argv) > 3:
-            self.load_canvas_file(sys.argv[3])
+        self.io.on_generate_hidden_layers_checked(event=None)
+        self.io.on_generate_assembly_mark_checked(event=None)
+        self.io.on_generate_assembly_page_checked(event=None)
+        self.io.on_generate_order_leftright_or_topdown_toggle(event=None)        
             
         
     def on_open(self, event):
@@ -96,23 +100,6 @@ class byAnhorGUI(wx.Frame):
             pathname = fileDialog.GetPath()
             self.load_file(pathname)
             
-    def on_open_canvas(self, event):
-        with wx.FileDialog(self, _('Select input A4 SVG canvas'), defaultDir=self.working_dir,
-                        wildcard='SVG files (*.svg)|*.svg',
-                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
-
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return
-
-            # Proceed loading the file chosen by the user
-            pathname = fileDialog.GetPath()
-            self.load_canvas_file(pathname)
-
-    def load_canvas_file(self,pathname):
-            self.canvas = pathname
-            self.io.load_new_canvas(self.canvas)
-            self.layer_filter.set_canvas(self.canvas)
-
     def load_file(self,pathname):
         try:
             # open the svg
@@ -123,7 +110,7 @@ class byAnhorGUI(wx.Frame):
             self.io.load_new(pathname)
 
             # create the processing objects
-            self.layer_filter = LayerFilter(self.in_doc, self.rect)
+            self.layer_filter = LayerFilter(self.in_doc, self.fullpatternrect)
             '''self.lt.load_new(self.layer_filter.get_layer_names(self.layer_filter.pdf))
 
             self.tiler = PageTiler()'''
@@ -161,7 +148,7 @@ class byAnhorGUI(wx.Frame):
             
         tempsvg = fitz.open(svgInput)
         page = tempsvg.load_page(0)
-        self.rect = page.rect
+        self.fullpatternrect = page.rect
            
         tempsvg = tempsvg.convert_to_pdf()
         tempsvg = fitz.open("pdf", tempsvg)
@@ -179,10 +166,11 @@ class byAnhorGUI(wx.Frame):
                     parent = ol.parentNode
                     parent.removeChild(ol)
                     str_ = doc0.toxml()
-                    layersvgfilename = self.temp_path + svgInputFile + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
+                    displayStr = "_hidden" if "display:none" in l.getAttribute("style") else "_show"
+                    layersvgfilename = self.temp_path + svgInputFile + displayStr + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
                     self.onelayersvg[l.getAttribute("id")] = str(layersvgfilename)
-                    with open(layersvgfilename, "w") as out:
-                        out.write(str_) 
+                    with open(layersvgfilename, "wb") as out:
+                        out.write(str_.encode("UTF-8", "ignore")) 
 
         for k in self.onelayersvg.keys(): 
             curfilename = self.onelayersvg[k]
@@ -209,7 +197,14 @@ class byAnhorGUI(wx.Frame):
 
         # do it
         try:
-            filtered = self.layer_filter.run(self.out_doc_path, self.io.generate_a0_checked, self.io.generate_a4_checked)
+            filtered = self.layer_filter.run(self.out_doc_path, 
+                                             self.io.generate_hidden_layers_checked, 
+                                             self.io.generate_a0_checked, 
+                                             self.io.generate_a4_checked, 
+                                             self.io.generate_A4_landscape_or_portrait, 
+                                             self.io.generate_assembly_page_choice, 
+                                             self.io.generate_order_leftright_or_topdown, 
+                                             self.io.generate_assembly_mark_choice)
         except Exception as e:
             print(_('Something went wrong'))
             print(_('Exception') + ':')
