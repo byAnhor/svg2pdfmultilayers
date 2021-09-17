@@ -11,6 +11,7 @@ import os
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.buttons as buts
+import fitz
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -68,36 +69,51 @@ class IOTab(scrolled.ScrolledPanel):
         self.generate_a4.Bind(wx.EVT_CHECKBOX,self.on_generate_a0a4_checked)
         boxA4sizer.Add(self.generate_a4, flag=wx.ALL, border=10)
         
-        newline = wx.BoxSizer(wx.HORIZONTAL)
+        """newline = wx.BoxSizer(wx.HORIZONTAL)
         newline.Add(wx.StaticText(self, label='    '))
         self.in_canvas_doc_btn = wx.Button(self, label=_('Select input A4 SVG canvas'))
         self.in_canvas_doc_btn.Bind(wx.EVT_BUTTON,main_gui.on_open_canvas)
         newline.Add(self.in_canvas_doc_btn, flag=wx.ALIGN_CENTRE_VERTICAL)
         self.input_canevas_fname_display = wx.StaticText(self, label=_('None'))
         newline.Add(self.input_canevas_fname_display, flag=wx.ALIGN_CENTRE_VERTICAL|wx.LEFT, border=5)
-        boxA4sizer.Add(newline, flag=wx.ALL, border=10)
+        boxA4sizer.Add(newline, flag=wx.ALL, border=10)"""
 
         newline = wx.BoxSizer(wx.HORIZONTAL)
+        newline.Add(wx.StaticText(self, label='    '))
+        boxorientation = wx.StaticBox(self,label='Canvas', size=(200,200))
+        boxorientationsizer = wx.StaticBoxSizer(boxorientation, wx.VERTICAL)
+        self.generate_A4_landscape_or_portrait_toggle = wx.ToggleButton(self)
+        self.generate_A4_landscape_or_portrait_toggle.Bind(wx.EVT_TOGGLEBUTTON,self.on_generate_A4_landscape_or_portrait_toggle) 
+        self.generate_A4_landscape_or_portrait_toggle.SetValue(True)
+        boxorientationsizer.Add(self.generate_A4_landscape_or_portrait_toggle, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, border=10)
+        self.generate_A4_percent_slider = wx.Slider(self, value = 80, minValue = 70, maxValue = 100, size=(180,20), style = wx.SL_HORIZONTAL|wx.SL_LABELS|wx.SL_TICKS|wx.SL_TOP)
+        self.generate_A4_percent_slider.SetTickFreq(5)
+        self.generate_A4_percent_slider.Bind(wx.EVT_SLIDER, self.on_generate_A4_percent_scroll)
+        #self.generate_A4_percent_slider.Bind(wx.EVT_SCROLL, self.on_generate_A4_percent_scroll)
+        self.generate_A4_percent_slider.SetValue(80)
+        boxorientationsizer.Add(self.generate_A4_percent_slider, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, border=10)
+        newline.Add(boxorientationsizer, flag=wx.ALIGN_CENTRE_VERTICAL)
+
         newline.Add(wx.StaticText(self, label='    '))
         self.assembly_page_mode = ['4 sides (center)', '2 sides (top-left)']     
         self.generate_assembly_page = wx.RadioBox(self, label = 'Assembly page', choices = self.assembly_page_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
         self.generate_assembly_page.Bind(wx.EVT_RADIOBOX,self.on_generate_assembly_page_checked) 
-        newline.Add(self.generate_assembly_page, flag=wx.ALIGN_CENTRE_VERTICAL)
+        newline.Add(self.generate_assembly_page, flag=wx.ALIGN_TOP)
         
         newline.Add(wx.StaticText(self, label='    '))
         self.assembly_mark_mode = ['No', 'LxCy', 'A-A']     
         self.generate_assembly_mark = wx.RadioBox(self, label = 'Assembly mark', choices = self.assembly_mark_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
         self.generate_assembly_mark.Bind(wx.EVT_RADIOBOX,self.on_generate_assembly_mark_checked) 
-        newline.Add(self.generate_assembly_mark, flag=wx.ALIGN_CENTRE_VERTICAL)
+        newline.Add(self.generate_assembly_mark, flag=wx.ALIGN_TOP)
         
         newline.Add(wx.StaticText(self, label='    '))
         boxorder = wx.StaticBox(self,label='Generation order')
         boxordersizer = wx.StaticBoxSizer(boxorder, wx.VERTICAL)
-        self.generate_order_leftright_or_leftright_toggle = wx.ToggleButton(self)
-        self.generate_order_leftright_or_leftright_toggle.Bind(wx.EVT_TOGGLEBUTTON,self.on_generate_order_leftright_or_leftright_toggle) 
-        self.generate_order_leftright_or_leftright_toggle.SetValue(True)
-        boxordersizer.Add(self.generate_order_leftright_or_leftright_toggle, flag=wx.ALL, border=10)
-        newline.Add(boxordersizer, flag=wx.ALIGN_CENTRE_VERTICAL)
+        self.generate_order_leftright_or_topdown_toggle = wx.ToggleButton(self)
+        self.generate_order_leftright_or_topdown_toggle.Bind(wx.EVT_TOGGLEBUTTON,self.on_generate_order_leftright_or_topdown_toggle) 
+        self.generate_order_leftright_or_topdown_toggle.SetValue(True)
+        boxordersizer.Add(self.generate_order_leftright_or_topdown_toggle, flag=wx.ALL, border=10)
+        newline.Add(boxordersizer, flag=wx.ALIGN_TOP)
         
         boxA4sizer.Add(newline, flag=wx.ALL, border=10)
 
@@ -106,7 +122,8 @@ class IOTab(scrolled.ScrolledPanel):
         self.on_generate_a0a4_checked(event=None)
         self.on_generate_assembly_mark_checked(event=None)
         self.on_generate_assembly_page_checked(event=None)
-        self.on_generate_order_leftright_or_leftright_toggle(event=None)        
+        self.on_generate_order_leftright_or_topdown_toggle(event=None)  
+        self.on_generate_A4_landscape_or_portrait_toggle(event=None)
 
         self.SetSizer(vert_sizer)
         self.SetupScrolling()
@@ -125,11 +142,9 @@ class IOTab(scrolled.ScrolledPanel):
     def on_generate_a0a4_checked(self,event):
         self.generate_a0_checked = bool(self.generate_a0.GetValue())
         self.generate_a4_checked = bool(self.generate_a4.GetValue())
-        self.in_canvas_doc_btn.Enable(self.generate_a4_checked)
-        self.generate_order_leftright_or_leftright_toggle.Enable(self.generate_a4_checked)
+        self.generate_order_leftright_or_topdown_toggle.Enable(self.generate_a4_checked)
         self.generate_assembly_mark.Enable(self.generate_a4_checked)
         self.generate_assembly_page.Enable(self.generate_a4_checked)
-        self.input_canevas_fname_display.Enable(self.generate_a4_checked)
         if self.generate_a0_checked and self.output_fname_display.Label != 'None':
             self.boxA0.SetLabel("Full size PDF generation : %s"%self.output_fname_display.Label.replace('.pdf', '.A0.pdf'))
         else:
@@ -145,10 +160,48 @@ class IOTab(scrolled.ScrolledPanel):
     def on_generate_assembly_page_checked(self,event):
         self.generate_assembly_page_choice = self.assembly_page_mode.index(self.generate_assembly_page.GetStringSelection())
 
-    def on_generate_order_leftright_or_leftright_toggle(self,event):
-        self.generate_order_leftright_or_leftright = self.generate_order_leftright_or_leftright_toggle.GetValue()
-        if self.generate_order_leftright_or_leftright_toggle.GetValue():
-            self.generate_order_leftright_or_leftright_toggle.SetBitmap(wx.Bitmap(resource_path("leftright.png")))
+    def on_generate_order_leftright_or_topdown_toggle(self,event):
+        self.generate_order_leftright_or_topdown = "leftright" if self.generate_order_leftright_or_topdown_toggle.GetValue() else "topdown"
+        if self.generate_order_leftright_or_topdown == "leftright":
+            self.generate_order_leftright_or_topdown_toggle.SetBitmap(wx.Bitmap(resource_path("leftright.png")))
         else:
-            self.generate_order_leftright_or_leftright_toggle.SetBitmap(wx.Bitmap(resource_path("topdown.png")))
+            self.generate_order_leftright_or_topdown_toggle.SetBitmap(wx.Bitmap(resource_path("topdown.png")))
         
+    def on_generate_A4_landscape_or_portrait_toggle(self,event):
+        self.generate_A4_landscape_or_portrait = "Portrait" if self.generate_A4_landscape_or_portrait_toggle.GetValue() else "Landscape"
+        if self.generate_A4_landscape_or_portrait == "Portrait":
+            self.generate_A4_landscape_or_portrait_toggle.SetBitmap(wx.Bitmap(resource_path("portrait.png")))
+        else:
+            self.generate_A4_landscape_or_portrait_toggle.SetBitmap(wx.Bitmap(resource_path("landscape.png")))
+        self.canvas_construction()
+
+    def on_generate_A4_percent_scroll(self,event):
+        print(_('scroll %s')%self.generate_A4_percent_slider.GetValue())
+        self.canvas_construction()
+
+    def canvas_construction(self):
+        doc = fitz.open()  
+        page = doc.new_page()
+        sliderpercent = self.generate_A4_percent_slider.GetValue() / 100.0
+        if self.generate_A4_landscape_or_portrait == "Landscape":
+            percentH = page.rect.width * sliderpercent
+            percentW = page.rect.height * sliderpercent
+        else:
+            percentW = page.rect.width * sliderpercent
+            percentH = page.rect.height * sliderpercent
+        doc.delete_page(0)
+        page = doc.new_page(width = percentW, height = percentH)
+        shape = page.new_shape()
+        shape.draw_rect(fitz.Rect(0,0,20,20))       
+        shape.draw_rect(fitz.Rect(percentW-20,0,percentW,20))
+        shape.draw_rect(fitz.Rect(0,percentH-20,20,percentH))
+        shape.draw_rect(fitz.Rect(percentW-20,percentH-20,percentW,percentH))
+        shape.finish(width=1, color=(0,0,0), fill=(0.9,0.9,0.9))
+        shape.draw_rect(fitz.Rect(0,0,percentW,percentH))
+        shape.finish(width=2, color=(0,0,0))
+        shape.commit()
+        doc = doc.convert_to_pdf()
+        doc = fitz.open("pdf", doc)
+        doc.save("canvasAuto.pdf")
+        doc.close()
+

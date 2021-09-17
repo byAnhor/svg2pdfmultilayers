@@ -33,17 +33,14 @@ def write_page(fname,page):
 '''
 
 class LayerFilter:
-    def __init__(self, onelayersvg = None, rect = None, canvas = None):
+    def __init__(self, onelayersvg = None, fullpatternrect = None, canvas = None):
         self.canvas = canvas
         self.onelayersvg = onelayersvg
-        self.rect = rect
+        self.fullpatternrect = fullpatternrect
         
         self.markercolortxt = (1,0,0)
         self.markerfillshape = (1,1,0.5)
         self.markercolorshape = (0,0,0)
-        
-    def set_canvas(self, canvas):
-        self.canvas = canvas
         
     def rect_up(self, r, d):
         return fitz.Rect(r.x0, r.y0 - d, r.x1, r.y0)
@@ -55,7 +52,7 @@ class LayerFilter:
         return fitz.Rect(r.x1, r.y0, r.x1 + d, r.y1)
     
                
-    def run(self, outdocpath, generatehiddenlayers, generatea0, generatea4, generateassemblypagechoice, generateorderleftrightorleftright, generateassemblymarkchoice):
+    def run(self, outdocpath, generatehiddenlayers, generatea0, generatea4, generatea4orientation, generateassemblypagechoice, generateorderleftrightorleftright, generateassemblymarkchoice):
         
         outdocpathA0 = outdocpath.replace('.pdf', '.A0.pdf')
         outdocpathA4 = outdocpath.replace('.pdf', '.A4.pdf')
@@ -70,7 +67,7 @@ class LayerFilter:
             for k in self.onelayersvg.keys(): 
                 if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
                     xrefOCG[k] = doc.add_ocg('%s'%k)
-            page = doc.new_page(-1, width = self.rect.width, height = self.rect.height)
+            page = doc.new_page(-1, width = self.fullpatternrect.width, height = self.fullpatternrect.height)
             doc.save(outdocpathA0)
             doc.close()
     
@@ -85,7 +82,7 @@ class LayerFilter:
                         pdfbytes = tempsvg.convert_to_pdf()
                         tempsvg.close()
                         tempsvg = fitz.open("pdf", pdfbytes) 
-                        page0.show_pdf_page(self.rect, tempsvg, 0, oc=xrefOCG[k])
+                        page0.show_pdf_page(self.fullpatternrect, tempsvg, 0, oc=xrefOCG[k])
                         tempsvg.close()
                         doc.saveIncr()
                     else: print('Hidden', k)
@@ -95,24 +92,18 @@ class LayerFilter:
         if generatea4:
             print('-------------- G E N E R A T E --- A 4 -----------------', outdocpathA4)
             
-            if self.canvas is None:
-                print('Please choose a canvas for A4 generation')
-                return 
-            
-            canvassvgfilename = self.canvas
-            canvaspdffilename = canvassvgfilename.replace('.svg', '.fitz.pdf')
-            canvasdoc = fitz.open(canvassvgfilename)
+            canvasdoc = fitz.open("canvasAuto.pdf")
             canvasdoc = canvasdoc.convert_to_pdf()
             canvasdoc = fitz.open("pdf", canvasdoc)
             canvaspage0 = canvasdoc.load_page(0)
             canvasrect = canvaspage0.rect
-            sheetW = math.ceil(self.rect.width / canvasrect.width)
-            sheetH = math.ceil(self.rect.height / canvasrect.height)
-            canvasdoc.save(canvaspdffilename)
+            sheetW = math.ceil(self.fullpatternrect.width / canvasrect.width)
+            sheetH = math.ceil(self.fullpatternrect.height / canvasrect.height)
             canvasdoc.close()
 
             pageorder = list()
-            if generateorderleftrightorleftright:
+            print('generateorderleftrightorleftright', generateorderleftrightorleftright)
+            if generateorderleftrightorleftright == "leftright":
                 for h in range(sheetH):
                     for w in range(sheetW):
                         pageorder.append((h,w))
@@ -121,7 +112,7 @@ class LayerFilter:
                     for h in range(sheetH):
                         pageorder.append((h,w))
             
-            doc = fitz.open()  
+            doc = fitz.open()                
             xrefOCG = dict()                   
             for k in self.onelayersvg.keys(): 
                 if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
@@ -130,8 +121,14 @@ class LayerFilter:
             xrefOCGA4In = doc.add_ocg('A4CanvasIn')
             xrefOCGA4Out = doc.add_ocg('A4CanvasOut')
             for p in range(len(pageorder)):
-                page = doc.new_page(-1)#, width = self.rect.width, height = self.rect.height)
-            print('Full size pattern (Pixel units 72 PPI) %sx%s'%(self.rect.width, self.rect.height))
+                page = doc.new_page(-1)
+                if generatea4orientation == "Landscape":
+                    rotW = page.rect.width
+                    rotH = page.rect.height
+                    doc.delete_page(-1)
+                    page = doc.new_page(-1, width = rotH, height = rotW)
+
+            print('Full size pattern (Pixel units 72 PPI) %sx%s'%(self.fullpatternrect.width, self.fullpatternrect.height))
             a4W = page.rect.width
             a4H = page.rect.height
             print('A4 size (Pixel units 72 PPI) %sx%s'%(a4W, a4H))
@@ -176,20 +173,20 @@ class LayerFilter:
                 pageRectDico[idwh]['UpForCanvas'] = None if generateassemblypagechoice == 1 else self.rect_up(pageRectDico[idwh]['CenterForCanvas'], deltaH) 
                 
                 if h == sheetH-1 and w == sheetW-1 : # last page
-                    cutH = sheetH*canvasrect.height - self.rect.height
-                    cutW = sheetW*canvasrect.width - self.rect.width
+                    cutH = sheetH*canvasrect.height - self.fullpatternrect.height
+                    cutW = sheetW*canvasrect.width - self.fullpatternrect.width
                     if generateassemblypagechoice == 0:
                         pageRectDico[idwh]['CenterForPattern'] = fitz.Rect(canvasrect.x0+deltaW, canvasrect.y0+deltaH, canvasrect.x1+deltaW-cutW, canvasrect.y1+deltaH-cutH)
                     else:
                         pageRectDico[idwh]['CenterForPattern'] = fitz.Rect(canvasrect.x0+0, canvasrect.y0+0, canvasrect.x1+0-cutW, canvasrect.y1+0-cutH)
                 elif h == sheetH-1: # last line
-                    cutH = sheetH*canvasrect.height - self.rect.height
+                    cutH = sheetH*canvasrect.height - self.fullpatternrect.height
                     if generateassemblypagechoice == 0:
                         pageRectDico[idwh]['CenterForPattern'] = fitz.Rect(canvasrect.x0+deltaW, canvasrect.y0+deltaH, canvasrect.x1+deltaW, canvasrect.y1+deltaH-cutH)
                     else:
                         pageRectDico[idwh]['CenterForPattern'] = fitz.Rect(canvasrect.x0+0, canvasrect.y0+0, canvasrect.x1+0, canvasrect.y1+0-cutH)
                 elif w == sheetW-1: # last col
-                    cutW = sheetW*canvasrect.width - self.rect.width
+                    cutW = sheetW*canvasrect.width - self.fullpatternrect.width
                     if generateassemblypagechoice == 0:
                         pageRectDico[idwh]['CenterForPattern'] = fitz.Rect(canvasrect.x0+deltaW, canvasrect.y0+deltaH, canvasrect.x1+deltaW-cutW, canvasrect.y1+deltaH)
                     else:
@@ -205,19 +202,19 @@ class LayerFilter:
                 
                 patternClipDico[idwh] = dict()
                 patternClipDico[idwh]['Center'] = fitz.Rect(w*canvasrect.width, h*canvasrect.height, 
-                                                  min((w+1)*canvasrect.width,self.rect.width),
-                                                  min((h+1)*canvasrect.height,self.rect.height))                    
+                                                  min((w+1)*canvasrect.width,self.fullpatternrect.width),
+                                                  min((h+1)*canvasrect.height,self.fullpatternrect.height))                    
                 patternClipDico[idwh]['Right'] = None if w == sheetW-1 else fitz.Rect((w+1)*canvasrect.width, h*canvasrect.height, 
-                                                                                      min((w+1)*canvasrect.width+deltaW,self.rect.width),
-                                                                                      min((h+1)*canvasrect.height,self.rect.height))                    
+                                                                                      min((w+1)*canvasrect.width+deltaW,self.fullpatternrect.width),
+                                                                                      min((h+1)*canvasrect.height,self.fullpatternrect.height))                    
                 patternClipDico[idwh]['Down'] = None if h == sheetH-1 else fitz.Rect(w*canvasrect.width, (h+1)*canvasrect.height, 
-                                                                                      min((w+1)*canvasrect.width,self.rect.width),
-                                                                                      min((h+1)*canvasrect.height+deltaH,self.rect.height))                    
+                                                                                      min((w+1)*canvasrect.width,self.fullpatternrect.width),
+                                                                                      min((h+1)*canvasrect.height+deltaH,self.fullpatternrect.height))                    
                 patternClipDico[idwh]['Left'] = None if w == 0 or generateassemblypagechoice == 1 else fitz.Rect(w*canvasrect.width-deltaW, h*canvasrect.height, 
                                                                               w*canvasrect.width,
-                                                                              min((h+1)*canvasrect.height,self.rect.height))                    
+                                                                              min((h+1)*canvasrect.height,self.fullpatternrect.height))                    
                 patternClipDico[idwh]['Up'] = None if h == 0 or generateassemblypagechoice == 1 else fitz.Rect(w*canvasrect.width, h*canvasrect.height-deltaH, 
-                                                                          min((w+1)*canvasrect.width,self.rect.width),
+                                                                          min((w+1)*canvasrect.width,self.fullpatternrect.width),
                                                                           h*canvasrect.height)                    
                 curPage = curPage + 1
            
@@ -230,17 +227,19 @@ class LayerFilter:
                 for h,w in pageorder:
                     idwh = 'L%sC%s '%(h,w)
                     pagei = doc.load_page(pageNumDico[idwh])
-                    tempsvg = fitz.open(canvaspdffilename)
+                    tempsvg = fitz.open("canvasAuto.pdf")
                     pdfbytes = tempsvg.convert_to_pdf()
                     tempsvg.close()
                     tempsvg = fitz.open("pdf", pdfbytes) 
                     
                     pagei.show_pdf_page(pageRectDico[idwh]['CenterForCanvas'], tempsvg, 0, oc=xrefOCGA4In)
                         
-                    if w < sheetW - 1:                            pagei.show_pdf_page(pageRectDico[idwh]['RightForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Right'])
-                    if h < sheetH - 1:                            pagei.show_pdf_page(pageRectDico[idwh]['DownForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Down'])
-                    if w > 0 and generateassemblypagechoice == 0: pagei.show_pdf_page(pageRectDico[idwh]['LeftForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Left'])
-                    if h > 0 and generateassemblypagechoice == 0: pagei.show_pdf_page(pageRectDico[idwh]['UpForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Up'])
+                    if deltaW > 0:
+                        if w < sheetW - 1:                            pagei.show_pdf_page(pageRectDico[idwh]['RightForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Right'])
+                        if w > 0 and generateassemblypagechoice == 0: pagei.show_pdf_page(pageRectDico[idwh]['LeftForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Left'])
+                    if deltaH > 0:
+                        if h > 0 and generateassemblypagechoice == 0: pagei.show_pdf_page(pageRectDico[idwh]['UpForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Up'])
+                        if h < sheetH - 1:                            pagei.show_pdf_page(pageRectDico[idwh]['DownForCanvas'], tempsvg, 0, oc=xrefOCGA4Out, clip=canvasClipDico['Down'])
                         
                     tempsvg.close()
                     shape = pagei.new_shape() # create Shape
