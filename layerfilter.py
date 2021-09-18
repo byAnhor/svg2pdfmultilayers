@@ -33,9 +33,9 @@ def write_page(fname,page):
 '''
 
 class LayerFilter:
-    def __init__(self, onelayersvg = None, fullpatternrect = None, canvas = None):
+    def __init__(self, svgfilenameperlayerdict = None, fullpatternrect = None, canvas = None):
         self.canvas = canvas
-        self.onelayersvg = onelayersvg
+        self.svgfilenameperlayerdict = svgfilenameperlayerdict
         self.fullpatternrect = fullpatternrect
         
         self.markercolortxt = (1,0,0)
@@ -52,31 +52,31 @@ class LayerFilter:
         return fitz.Rect(r.x1, r.y0, r.x1 + d, r.y1)
     
                
-    def run(self, outdocpath, generatehiddenlayers, generatea0, generatea4, generatea4orientation, generateassemblypagechoice, generateorderleftrightorleftright, generateassemblymarkchoice):
+    def run(self, outputfilename, generatehiddenlayers, generatea0, generatea4, generatea4orientation, generateassemblypagechoice, generateorderleftrightorleftright, generateassemblymarkchoice):
         
-        outdocpathA0 = outdocpath.replace('.pdf', '.A0.pdf')
-        outdocpathA4 = outdocpath.replace('.pdf', '.A4.pdf')
+        outputfilenameA0 = outputfilename.replace('.pdf', '.A0.pdf')
+        outputfilenameA4 = outputfilename.replace('.pdf', '.A4.pdf')
         
         if generatea0:
 
-            print('-------------- G E N E R A T E --- A 0 -----------------', outdocpathA0)
+            print('-------------- G E N E R A T E --- A 0 -----------------', outputfilenameA0)
             
 
             doc = fitz.open()  
             xrefOCG = dict()                   
-            for k in self.onelayersvg.keys(): 
-                if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
+            for k in self.svgfilenameperlayerdict.keys(): 
+                if generatehiddenlayers or "show_LAYER" in self.svgfilenameperlayerdict[k]:
                     xrefOCG[k] = doc.add_ocg('%s'%k)
             page = doc.new_page(-1, width = self.fullpatternrect.width, height = self.fullpatternrect.height)
-            doc.save(outdocpathA0)
+            doc.save(outputfilenameA0)
             doc.close()
     
-            doc = fitz.open(outdocpathA0)  
+            doc = fitz.open(outputfilenameA0)  
             page0 = doc.load_page(0)
             try:
-                for k in self.onelayersvg.keys(): 
-                    if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
-                        curfilename = self.onelayersvg[k].replace('.svg', '.fitz.pdf')
+                for k in self.svgfilenameperlayerdict.keys(): 
+                    if generatehiddenlayers or "show_LAYER" in self.svgfilenameperlayerdict[k]:
+                        curfilename = self.svgfilenameperlayerdict[k].replace('.svg', '.fitz.pdf')
                         print('Temporary create file ', curfilename)
                         tempsvg = fitz.open(curfilename)
                         pdfbytes = tempsvg.convert_to_pdf()
@@ -90,7 +90,7 @@ class LayerFilter:
             except: doc.close()
             
         if generatea4:
-            print('-------------- G E N E R A T E --- A 4 -----------------', outdocpathA4)
+            print('-------------- G E N E R A T E --- A 4 -----------------', outputfilenameA4)
             
             canvasdoc = fitz.open("canvasAuto.pdf")
             canvasdoc = canvasdoc.convert_to_pdf()
@@ -114,9 +114,9 @@ class LayerFilter:
             
             doc = fitz.open()                
             xrefOCG = dict()                   
-            for k in self.onelayersvg.keys(): 
-                if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
-                    print(k + ' => ' + str(self.onelayersvg[k]))
+            for k in self.svgfilenameperlayerdict.keys(): 
+                if generatehiddenlayers or "show_LAYER" in self.svgfilenameperlayerdict[k]:
+                    print(k + ' => ' + str(self.svgfilenameperlayerdict[k]))
                     xrefOCG[k] = doc.add_ocg('%s'%k)
             xrefOCGA4In = doc.add_ocg('A4CanvasIn')
             xrefOCGA4Out = doc.add_ocg('A4CanvasOut')
@@ -218,10 +218,10 @@ class LayerFilter:
                                                                           h*canvasrect.height)                    
                 curPage = curPage + 1
            
-            doc.save(outdocpathA4)
+            doc.save(outputfilenameA4)
             doc.close()
 
-            doc = fitz.open(outdocpathA4)  
+            doc = fitz.open(outputfilenameA4)  
             try:
                 print(_('Generate the canvas on each page = central panel + (right/left/down/up) if existing + LxCy textbox'))
                 for h,w in pageorder:
@@ -279,10 +279,10 @@ class LayerFilter:
                 print(e)
              
             try:
-                doc = fitz.open(outdocpathA4)  
-                for k in self.onelayersvg.keys(): 
-                    if generatehiddenlayers or "show_LAYER" in self.onelayersvg[k]:
-                        curfilename = self.onelayersvg[k].replace('.svg', '.fitz.pdf')
+                doc = fitz.open(outputfilenameA4)  
+                for k in self.svgfilenameperlayerdict.keys(): 
+                    if generatehiddenlayers or "show_LAYER" in self.svgfilenameperlayerdict[k]:
+                        curfilename = self.svgfilenameperlayerdict[k].replace('.svg', '.fitz.pdf')
                         tempsvg = fitz.open(curfilename)
                         pdfbytes = tempsvg.convert_to_pdf()
                         tempsvg.close()
@@ -337,7 +337,7 @@ class LayerFilter:
                 print(e)
 
         print(_('Done !'))
-        return outdocpath
+        return outputfilename
     
     def upmark(self, CenterForCanvas, pagei, txt, xrefOCGA4In , xrefOCGA4Out, cond):
 

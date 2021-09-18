@@ -33,6 +33,13 @@ class byAnhorGUI(wx.Frame):
         super(byAnhorGUI, self).__init__(*args, **kw)
         self.ToggleWindowStyle(wx.STAY_ON_TOP | wx.CLOSE_BOX)
 
+        self.all_svg_filename_per_layer = None
+        self.all_input_filenames = None
+        self.all_output_filenames = None
+        self.unic_output_filename = None
+        self.all_layer_filters = None
+        self.all_full_pattern_rect = None
+        
         # split the bottom half from the notebook top
         splitter = wx.SplitterWindow(self,style=wx.SP_LIVE_UPDATE)
 
@@ -91,36 +98,34 @@ class byAnhorGUI(wx.Frame):
     def on_open(self, event):
         with wx.FileDialog(self, _('Select input SVG'), defaultDir=self.working_dir,
                         wildcard='SVG files (*.svg)|*.svg',
-                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
 
             # Proceed loading the file chosen by the user
-            pathname = fileDialog.GetPath()
-            self.load_file(pathname)
+            inputfilenamelist = fileDialog.GetPaths()
+            self.load_file(inputfilenamelist)
             
-    def load_file(self,pathname):
-        try:
-            # open the svg
-            print(_('Opening') + ' ' + pathname)
-            self.one_pdf_per_layer(pathname)
-            
-            self.in_doc = self.onelayersvg
-            self.io.load_new(pathname)
+    def load_file(self,inputfilenamelist):
+        self.all_svg_filename_per_layer = []
+        self.all_input_filenames = []
+        self.all_layer_filters = []
+        self.all_full_pattern_rect = []
+        for f in inputfilenamelist: 
+            try:
+                # open the svg
+                print(_('Open %s and parse its layers'%f))
+                self.one_pdf_per_layer(f)
+                self.all_layer_filters.append(LayerFilter(self.svg_filename_per_layer_dict, self.all_full_pattern_rect[-1]))
+                self.all_svg_filename_per_layer.append(self.svg_filename_per_layer_dict)
+                self.all_input_filenames.append(f)                
+            except IOError:
+                wx.LogError(_('Cannot load file') + pathname)
+        
+        self.io.load_new(self.all_input_filenames)    
+        self.out_doc_path = None # clear the output if it's already set
 
-            # create the processing objects
-            self.layer_filter = LayerFilter(self.in_doc, self.fullpatternrect)
-            '''self.lt.load_new(self.layer_filter.get_layer_names(self.layer_filter.pdf))
-
-            self.tiler = PageTiler()'''
-            
-            # clear the output if it's already set
-            self.out_doc_path = None
-
-        except IOError:
-            wx.LogError(_('Cannot open file') + pathname)
-            
     def on_output(self, event):
         with wx.FileDialog(self, _('Save output as'), defaultDir=self.working_dir,
                         wildcard='PDF files (*.pdf)|*.pdf',
@@ -129,10 +134,10 @@ class byAnhorGUI(wx.Frame):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
 
-            pathname = fileDialog.GetPath()
+            ouputfilename = fileDialog.GetPath()
             try:
-                self.out_doc_path = pathname
-                self.io.output_fname_display.SetLabel(pathname)
+                self.unic_output_filename = ouputfilename
+                self.io.output_fname_display.SetLabel(ouputfilename)
 
             except IOError:
                 wx.LogError(_('unable to write to') + pathname)
@@ -148,7 +153,7 @@ class byAnhorGUI(wx.Frame):
             
         tempsvg = fitz.open(svgInput)
         page = tempsvg.load_page(0)
-        self.fullpatternrect = page.rect
+        self.all_full_pattern_rect.append(page.rect)
            
         tempsvg = tempsvg.convert_to_pdf()
         tempsvg = fitz.open("pdf", tempsvg)
@@ -156,7 +161,7 @@ class byAnhorGUI(wx.Frame):
         
         doc = minidom.parse(svgInput)
         allL = [l for l in doc.getElementsByTagName('g') if l.getAttribute("inkscape:groupmode") == 'layer']
-        self.onelayersvg = dict()
+        self.svg_filename_per_layer_dict = dict()
    
         for l in reversed(allL):
             doc0 = minidom.parse(svgInput)
@@ -168,12 +173,12 @@ class byAnhorGUI(wx.Frame):
                     str_ = doc0.toxml()
                     displayStr = "_hidden" if "display:none" in l.getAttribute("style") else "_show"
                     layersvgfilename = self.temp_path + svgInputFile + displayStr + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
-                    self.onelayersvg[l.getAttribute("id")] = str(layersvgfilename)
+                    self.svg_filename_per_layer_dict[l.getAttribute("id")] = str(layersvgfilename)
                     with open(layersvgfilename, "wb") as out:
                         out.write(str_.encode("UTF-8", "ignore")) 
 
-        for k in self.onelayersvg.keys(): 
-            curfilename = self.onelayersvg[k]
+        for k in self.svg_filename_per_layer_dict.keys(): 
+            curfilename = self.svg_filename_per_layer_dict[k]
             layerpdffilename = curfilename.replace('.svg', '.fitz.pdf')
             tempsvg = fitz.open(curfilename)
             tempsvg = tempsvg.convert_to_pdf()
@@ -182,29 +187,36 @@ class byAnhorGUI(wx.Frame):
 
             
     def on_go_pressed(self,event):
-        if self.in_doc is None:
+        if self.all_svg_filename_per_layer is None:
             print(_('Please select INPUT svg file before'))
             return 
-        if self.in_doc is None:
+        if self.unic_output_filename is None and len(self.all_svg_filename_per_layer) == 1:
             print(_('Please select OUTPUT pdf file before'))
-            return 
-        
-        # retrieve the selected options
-        if self.out_doc_path is None:
             self.on_output(event)
-            if self.out_doc_path is None:
+            if self.unic_output_filename is None:
                 return
-
+        
+        self.all_output_filenames = []
+        if len(self.all_svg_filename_per_layer) == 1:
+            self.all_output_filenames.append(self.unic_output_filename)
+        else:
+            for f in self.all_input_filenames:
+                tmp = '%s/AutoGenPDF/'%os.path.dirname(f)
+                if not os.path.exists(tmp):
+                    os.makedirs(tmp)
+                self.all_output_filenames.append('%s%s'%(tmp, os.path.basename(f).replace('.svg','.pdf')))
+                   
         # do it
         try:
-            filtered = self.layer_filter.run(self.out_doc_path, 
-                                             self.io.generate_hidden_layers_checked, 
-                                             self.io.generate_a0_checked, 
-                                             self.io.generate_a4_checked, 
-                                             self.io.generate_A4_landscape_or_portrait, 
-                                             self.io.generate_assembly_page_choice, 
-                                             self.io.generate_order_leftright_or_topdown, 
-                                             self.io.generate_assembly_mark_choice)
+            for lfi,lf in enumerate(self.all_layer_filters):
+                filtered = lf.run(self.all_output_filenames[lfi], 
+                                  self.io.generate_hidden_layers_checked, 
+                                  self.io.generate_a0_checked, 
+                                  self.io.generate_a4_checked, 
+                                  self.io.generate_A4_landscape_or_portrait, 
+                                  self.io.generate_assembly_page_choice, 
+                                  self.io.generate_order_leftright_or_topdown, 
+                                  self.io.generate_assembly_mark_choice)
         except Exception as e:
             print(_('Something went wrong'))
             print(_('Exception') + ':')
