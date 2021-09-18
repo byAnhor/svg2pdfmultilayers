@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(['svg2pdfmultilayers.py'],
-             pathex=['C:\\Users\\anita\\Documents\\GITHub\\SVG_PDF_Multilayers'],
+             pathex=['C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2'],
              binaries=[],
              datas=[('*.py', 'sources')],
              hiddenimports=[],
