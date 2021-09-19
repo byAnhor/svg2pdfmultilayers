@@ -89,7 +89,6 @@ class byAnhorGUI(wx.Frame):
             self.io.output_fname_display.SetLabel(sys.argv[2])
             self.io.on_generate_a0a4_checked(event=None)
 
-        self.io.on_generate_hidden_layers_checked(event=None)
         self.io.on_generate_assembly_mark_checked(event=None)
         self.io.on_generate_assembly_page_checked(event=None)
         self.io.on_generate_order_leftright_or_topdown_toggle(event=None)        
@@ -205,18 +204,30 @@ class byAnhorGUI(wx.Frame):
                 if not os.path.exists(tmp):
                     os.makedirs(tmp)
                 self.all_output_filenames.append('%s%s'%(tmp, os.path.basename(f).replace('.svg','.pdf')))
+                self.merge_all_output_filename = '%smergedA4.pdf'%tmp
                    
         # do it
         try:
+            
+            mergedoc = fitz.open() if self.io.generate_merged_pdf.GetValue() else None
+
             for lfi,lf in enumerate(self.all_layer_filters):
                 filtered = lf.run(self.all_output_filenames[lfi], 
-                                  self.io.generate_hidden_layers_checked, 
+                                  bool(self.io.generate_hidden_layers.GetValue()), 
                                   self.io.generate_a0_checked, 
-                                  self.io.generate_a4_checked, 
+                                  self.io.generate_a4_checked,                                  
                                   self.io.generate_A4_landscape_or_portrait, 
                                   self.io.generate_assembly_page_choice, 
                                   self.io.generate_order_leftright_or_topdown, 
                                   self.io.generate_assembly_mark_choice)
+                
+                if mergedoc is not None:
+                    doc = fitz.open(self.all_output_filenames[lfi].replace('.pdf', '.A4.pdf'))
+                    mergedoc.insertPDF(doc)
+                    doc.close()
+            
+            if mergedoc is not None: mergedoc.save(self.merge_all_output_filename)
+                
         except Exception as e:
             print(_('Something went wrong'))
             print(_('Exception') + ':')

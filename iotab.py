@@ -50,7 +50,6 @@ class IOTab(scrolled.ScrolledPanel):
         newline = wx.BoxSizer(wx.HORIZONTAL)
         self.generate_hidden_layers = wx.CheckBox(self,label=_('Generate hidden layers'))
         self.generate_hidden_layers.SetValue(0)
-        self.generate_hidden_layers.Bind(wx.EVT_CHECKBOX,self.on_generate_hidden_layers_checked)
         newline.Add(self.generate_hidden_layers, flag=wx.ALL, border=10)
         vert_sizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
 
@@ -69,6 +68,13 @@ class IOTab(scrolled.ScrolledPanel):
         self.generate_a4.Bind(wx.EVT_CHECKBOX,self.on_generate_a0a4_checked)
         boxA4sizer.Add(self.generate_a4, flag=wx.ALL, border=10)
         
+        newline = wx.BoxSizer(wx.HORIZONTAL)
+        newline.Add(wx.StaticText(self, label='    '))
+        self.generate_merged_pdf = wx.CheckBox(self,label='Generate merged PDF')
+        self.generate_merged_pdf.SetValue(0)
+        newline.Add(self.generate_merged_pdf, flag=wx.ALIGN_TOP)
+        boxA4sizer.Add(newline, flag=wx.ALL, border=10)
+
         """newline = wx.BoxSizer(wx.HORIZONTAL)
         newline.Add(wx.StaticText(self, label='    '))
         self.in_canvas_doc_btn = wx.Button(self, label=_('Select input A4 SVG canvas'))
@@ -141,23 +147,21 @@ class IOTab(scrolled.ScrolledPanel):
     def load_new_canvas(self,filename):
         self.input_canevas_fname_display.SetLabel(filename)
         
-    def on_generate_hidden_layers_checked(self,event):
-        self.generate_hidden_layers_checked = bool(self.generate_hidden_layers.GetValue())
-        
     def on_generate_a0a4_checked(self,event):
         self.generate_a0_checked = bool(self.generate_a0.GetValue())
         self.generate_a4_checked = bool(self.generate_a4.GetValue())
         self.generate_order_leftright_or_topdown_toggle.Enable(self.generate_a4_checked)
         self.generate_assembly_mark.Enable(self.generate_a4_checked)
         self.generate_assembly_page.Enable(self.generate_a4_checked)
+        self.generate_merged_pdf.Enable(self.generate_a4_checked)
         if self.generate_a0_checked and self.output_fname_display.Label != 'None':
             self.boxA0.SetLabel("Full size PDF generation : %s"%self.output_fname_display.Label.replace('.pdf', '.A0.pdf'))
         else:
             self.boxA0.SetLabel("Full size PDF generation")
         if self.generate_a4_checked and self.output_fname_display.Label != 'None':
-            self.boxA4.SetLabel("Full size PDF generation : %s"%self.output_fname_display.Label.replace('.pdf', '.A4.pdf'))
+            self.boxA4.SetLabel("A4 PDF generation : %s"%self.output_fname_display.Label.replace('.pdf', '.A4.pdf'))
         else:
-            self.boxA4.SetLabel("Full size PDF generation")
+            self.boxA4.SetLabel("A4 PDF generation")
             
     def on_generate_assembly_mark_checked(self,event):
         self.generate_assembly_mark_choice = self.assembly_mark_mode.index(self.generate_assembly_mark.GetStringSelection())
@@ -181,7 +185,6 @@ class IOTab(scrolled.ScrolledPanel):
         self.canvas_construction()
 
     def on_generate_A4_percent_scroll(self,event):
-        print(_('scroll %s')%self.generate_A4_percent_slider.GetValue())
         self.canvas_construction()
 
     def canvas_construction(self):
