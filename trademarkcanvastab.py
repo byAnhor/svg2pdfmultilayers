@@ -64,7 +64,7 @@ class TrademarkCanvasTab(scrolled.ScrolledPanel):
 
         trademarkcanvas = wx.StaticBox(self,label='Trademark canvas', size=(180,100))
         trademarkcanvassizer = wx.StaticBoxSizer(trademarkcanvas, wx.VERTICAL)
-        self.select_trademark_canvas_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("ressources/openXS.ico")), label= "Select your own SVG canvas")
+        self.select_trademark_canvas_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("openXS.ico")), label= "Select your own SVG canvas")
         self.select_trademark_canvas_btn.Bind(wx.EVT_BUTTON,self.on_select_trademark_canvas)
         trademarkcanvassizer.Add(self.select_trademark_canvas_btn, flag=wx.ALL, border=10)
 
@@ -93,7 +93,7 @@ class TrademarkCanvasTab(scrolled.ScrolledPanel):
         greycond = not self.preview_image.IsEnabled() or self.trademark_svg_canvas_filename is None
         dc.SetBackground(wx.Brush('grey' if greycond else 'white'))
         dc.Clear()
-        svg = wx.svg.SVGimage.CreateFromFile("ressources/nocanvas.svg" if greycond else self.trademark_svg_canvas_filename)
+        svg = wx.svg.SVGimage.CreateFromFile("nocanvas.svg" if greycond else self.trademark_svg_canvas_filename)
         dcdim = min(self.preview_image.Size.width, self.preview_image.Size.height)
         imgdim = max(svg.width, svg.height)
         scale = dcdim / imgdim

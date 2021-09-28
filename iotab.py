@@ -48,7 +48,7 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         globalsizer = wx.FlexGridSizer(6,1,10,10)
 
         newline = wx.BoxSizer(wx.HORIZONTAL)
-        in_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("ressources/openXS.ico")), label= "Select input SVG with layers")
+        in_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("openXS.ico")), label= "Select input SVG with layers")
         in_doc_btn.Bind(wx.EVT_BUTTON,self.on_open_svg)
         newline.Add(in_doc_btn, flag=wx.ALIGN_CENTRE_VERTICAL)
         self.input_fname_display = wx.StaticText(self, label='None')
@@ -56,7 +56,7 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         globalsizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
 
         newline = wx.BoxSizer(wx.HORIZONTAL)
-        self.out_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("ressources/savepdfXS.ico")), label= "Save output as PDF")
+        self.out_doc_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("savepdfXS.ico")), label= "Save output as PDF")
         self.out_doc_btn.Bind(wx.EVT_BUTTON,self.on_output_pdf)
         newline.Add(self.out_doc_btn, flag=wx.ALIGN_CENTRE_VERTICAL)
         self.output_fname_display = wx.StaticText(self, label='None')
@@ -158,18 +158,18 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
             
     def on_generate_scanning_order_toggle(self,event):
         if self.generate_scanning_order_toggle.GetValue():
-            self.generate_scanning_order_toggle.SetBitmap(wx.Bitmap(resource_path("ressources/leftright.png")))
+            self.generate_scanning_order_toggle.SetBitmap(wx.Bitmap(resource_path("leftright.png")))
             self.scanning_order_infobulle.SetLabel('Horizontally first')  
         else:
-            self.generate_scanning_order_toggle.SetBitmap(wx.Bitmap(resource_path("ressources/topdown.png")))
+            self.generate_scanning_order_toggle.SetBitmap(wx.Bitmap(resource_path("topdown.png")))
             self.scanning_order_infobulle.SetLabel('Vertically first')  
 
     def on_generate_sheet_trimming_toggle(self,event):
         if self.generate_sheet_trimming_toggle.GetValue():
-            self.generate_sheet_trimming_toggle.SetBitmap(wx.Bitmap(resource_path("ressources/center.png")))
+            self.generate_sheet_trimming_toggle.SetBitmap(wx.Bitmap(resource_path("center.png")))
             self.sheet_trimming_infobulle.SetLabel('Need to cut 2 sides before assembling')
         else:
-            self.generate_sheet_trimming_toggle.SetBitmap(wx.Bitmap(resource_path("ressources/topleft.png")))
+            self.generate_sheet_trimming_toggle.SetBitmap(wx.Bitmap(resource_path("topleft.png")))
             self.sheet_trimming_infobulle.SetLabel('Only superimpose sheets')
 
     def on_use_trademark_canvas_checked(self,event):
