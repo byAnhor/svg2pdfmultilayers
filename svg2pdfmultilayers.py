@@ -50,13 +50,9 @@ class byAnhorGUI(FrozenClass, wx.Frame):
         if sys.platform == 'win32' or sys.platform == 'linux':
             self.SetIcon(wx.Icon(utils.resource_path('icon.ico')))
        
-        if len(sys.argv) > 1: self.gui_io.load_svg_file(sys.argv[1]) 
-        self.gui_io.load_svg_file([u'C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\tests\\mini.svg'])  
-        
+        if len(sys.argv) > 1: self.gui_io.load_svg_file(sys.argv[1])       
         if len(sys.argv) > 2: self.gui_io.load_output_pdf_file(sys.argv[2])
-        self.gui_io.load_output_pdf_file(u'C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\tests\\autogen.pdf')  
             
-        self.gui_custo.load_custo_pressed(u'C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\tests\\byanhor.custo')
         self._freeze()
 
     def draw_gui(self, size):

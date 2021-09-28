@@ -11,7 +11,6 @@ import os
 import shutil
 import wx
 import wx.lib.scrolledpanel as scrolled
-import wx.richtext as richtext
 import wx.lib.buttons as buts
 import wx.svg
 import fitz
@@ -62,10 +61,10 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         right_sizer.Add(canvaspreviewsizer)
 
         newline = wx.BoxSizer(wx.HORIZONTAL)
-        self.load_custo_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("custoload.ico")), label= "Load customization")
+        self.load_custo_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("ressources/custoload.ico")), label= "Load customization")
         self.load_custo_btn.SetFont(self.load_custo_btn.GetFont().Bold())
         self.load_custo_btn.Bind(wx.EVT_BUTTON,self.on_load_custo_pressed)
-        self.save_custo_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("custosave.ico")), label= "Save customization")
+        self.save_custo_btn = buts.GenBitmapTextButton(self, -1, bitmap=wx.Bitmap(resource_path("ressources/custosave.ico")), label= "Save customization")
         self.save_custo_btn.SetFont(self.save_custo_btn.GetFont().Bold())
         self.save_custo_btn.Bind(wx.EVT_BUTTON,self.on_save_custo_pressed)
         newline.Add(self.load_custo_btn, flag=wx.ALL|wx.EXPAND,border=5)
@@ -151,9 +150,9 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
 
     def on_generate_A4_landscape_or_portrait_toggle(self,event):  
         if self.generate_A4['landscape_or_portrait_toggle'].GetValue():
-            self.generate_A4['landscape_or_portrait_toggle'].SetBitmap(wx.Bitmap(resource_path("landscape.png")))
+            self.generate_A4['landscape_or_portrait_toggle'].SetBitmap(wx.Bitmap(resource_path("ressources/landscape.png")))
         else:
-            self.generate_A4['landscape_or_portrait_toggle'].SetBitmap(wx.Bitmap(resource_path("portrait.png")))
+            self.generate_A4['landscape_or_portrait_toggle'].SetBitmap(wx.Bitmap(resource_path("ressources/portrait.png")))
         self.auto_canvas_construction(event=None)
 
     def on_load_custo_pressed(self,event):
@@ -210,7 +209,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                 else: print('Unknow instance')
                 
             with open(custofilename, 'w') as outfile:
-                json.dump(data, outfile)
+                json.dump(data, outfile, indent=4, sort_keys=True)
                   
     def on_paint(self,event):
         dc = wx.PaintDC(self.preview_image)
@@ -218,7 +217,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         greycond = not self.preview_image.IsEnabled() or not os.path.isfile(self.temp_canvas_svg)
         dc.SetBackground(wx.Brush('grey' if greycond else 'white'))
         dc.Clear()
-        svg = wx.svg.SVGimage.CreateFromFile("nocanvas.svg" if greycond else self.temp_canvas_svg)
+        svg = wx.svg.SVGimage.CreateFromFile("ressources/nocanvas.svg" if greycond else self.temp_canvas_svg)
         dcdim = min(self.preview_image.Size.width, self.preview_image.Size.height)
         imgdim = max(svg.width, svg.height)
         scale = dcdim / imgdim
