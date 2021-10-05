@@ -14,7 +14,7 @@ import wx.lib.buttons as buts
 from enum import Enum
 from frozenclass import FrozenClass
 from from1svgtonpdf import From1svgToNpdf
-from pdfgenerator import CanvasOnSheet, PagesOrdering, PagesOrientation, TapeMarks
+from pdfgenerator import CanvasOnSheet, PagesOrdering, PagesOrientation, TapeMarks, PagesNumbering
 from custopdfgenerator import CustoPDFGenerator
 from trademarkpdfgenerator import TrademarkPDFGenerator
 import json
@@ -123,6 +123,48 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         newline.Add(boxusepersonalcanvassizer, flag=wx.ALIGN_TOP)
         boxA4sizer.Add(newline, flag=wx.ALL, border=10)
 
+        newline = wx.FlexGridSizer(4,10,10)
+        self.pagenumber_txt_mode = ['No', 'LxCy', 'Page number']     
+        self.pagenumber_txt = wx.RadioBox(self, label = 'Pager number text', choices = self.pagenumber_txt_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
+        newline.Add(self.pagenumber_txt, flag=wx.ALIGN_TOP)
+        boxpagenumbertxtcolor = wx.StaticBox(self,label='Text color')
+        boxpagenumbertxtcolorsizer = wx.StaticBoxSizer(boxpagenumbertxtcolor, wx.VERTICAL)
+        self.pagenumber_color = wx.ColourPickerCtrl(self)
+        self.pagenumber_color.SetColour('grey')
+        boxpagenumbertxtcolorsizer.Add(self.pagenumber_color, flag=wx.ALL, border=10)        
+        newline.Add(boxpagenumbertxtcolorsizer, flag=wx.ALIGN_TOP|wx.EXPAND)
+        boxpagenumbertxtsize = wx.StaticBox(self,label='Text size')
+        boxpagenumbertxtsizesizer = wx.StaticBoxSizer(boxpagenumbertxtsize, wx.HORIZONTAL)
+        self.pagenumber_size = wx.TextCtrl(self, -1, "150", size=(30,20))
+        self.pagenumber_size.Bind(wx.EVT_TEXT, self.on_change_page_number_size) 
+        pagenumber_h = self.pagenumber_size.GetSize().height
+        pagenumber_w = self.pagenumber_size.GetSize().width + self.pagenumber_size.GetPosition().x + 2
+        self.pagenumber_size_spinButton = wx.SpinButton(self, -1, (pagenumber_w, 50),
+                                          (pagenumber_h * 2 / 3, pagenumber_h),
+                                          wx.SP_VERTICAL)
+        self.pagenumber_size_spinButton.SetRange(20,400)
+        self.pagenumber_size_spinButton.SetValue(150)
+        self.pagenumber_size_spinButton.Bind(wx.EVT_SPIN, self.on_spin_page_number_size)
+        boxpagenumbertxtsizesizer.Add(self.pagenumber_size, flag=wx.ALIGN_TOP)
+        boxpagenumbertxtsizesizer.Add(self.pagenumber_size_spinButton, flag=wx.ALIGN_TOP)
+        newline.Add(boxpagenumbertxtsizesizer, flag=wx.ALIGN_TOP|wx.EXPAND)
+        boxpagenumbertxtopacity = wx.StaticBox(self,label='Text opacity')
+        boxpagenumbertxtopacitysizer = wx.StaticBoxSizer(boxpagenumbertxtopacity, wx.HORIZONTAL)
+        self.pagenumber_opacity = wx.TextCtrl(self, -1, "20", size=(30,20))
+        self.pagenumber_opacity.Bind(wx.EVT_TEXT, self.on_change_page_number_opacity) 
+        pagenumber_h = self.pagenumber_opacity.GetSize().height
+        pagenumber_w = self.pagenumber_opacity.GetSize().width + self.pagenumber_opacity.GetPosition().x + 2
+        self.pagenumber_opacity_spinButton = wx.SpinButton(self, -1, (pagenumber_w, 50),
+                                                          (pagenumber_h * 2 / 3, pagenumber_h),
+                                                           wx.SP_VERTICAL)
+        self.pagenumber_opacity_spinButton.SetRange(1,100)
+        self.pagenumber_opacity_spinButton.SetValue(20)
+        self.pagenumber_opacity_spinButton.Bind(wx.EVT_SPIN, self.on_spin_page_number_opacity)
+        boxpagenumbertxtopacitysizer.Add(self.pagenumber_opacity, flag=wx.ALIGN_TOP)
+        boxpagenumbertxtopacitysizer.Add(self.pagenumber_opacity_spinButton, flag=wx.ALIGN_TOP)
+        newline.Add(boxpagenumbertxtopacitysizer, flag=wx.ALIGN_TOP|wx.EXPAND)
+        boxA4sizer.Add(newline, flag=wx.ALL, border=10)
+ 
         globalsizer.Add(boxA4sizer, flag=wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT, border=10)
 
         self.on_generate_a0a4_checked(event=None)
@@ -134,6 +176,9 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         self.SetupScrolling()
         self.SetBackgroundColour(parent.GetBackgroundColour())
         
+        self.current_pagenumber_size = None
+        self.current_pagenumber_opacity = None
+                
         self._freeze()
                      
     def load_new_canvas(self,filename):
@@ -174,6 +219,22 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
 
     def on_use_trademark_canvas_checked(self,event):
         self.main_gui.manage_access_to_custo_or_trademark_canvas(self.use_trademark_canvas.GetValue())
+        
+    def on_spin_page_number_size(self, event):
+        self.current_pagenumber_size = str(event.GetPosition())
+        self.pagenumber_size.SetValue(self.current_pagenumber_size)
+
+    def on_change_page_number_size(self, event):
+        self.current_pagenumber_size = str(event.GetString())
+        self.pagenumber_size_spinButton.SetValue(int(self.current_pagenumber_size))
+
+    def on_spin_page_number_opacity(self, event):
+        self.current_pagenumber_opacity = str(event.GetPosition())
+        self.pagenumber_opacity.SetValue(self.current_pagenumber_opacity)
+
+    def on_change_page_number_opacity(self, event):
+        self.current_pagenumber_opacity = str(event.GetString())
+        self.pagenumber_opacity_spinButton.SetValue(int(self.current_pagenumber_opacity))
 
     def on_open_svg(self, event):
         with wx.FileDialog(self, 'Select input SVG', defaultDir=self.main_gui.working_dir,
@@ -201,6 +262,11 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         pdfgen.generatePagesOrientation = PagesOrientation.LANDSCAPE if self.get_landscape_or_portrait() else PagesOrientation.PORTRAIT
         pdfgen.generateMaskingTapeTxt = TapeMarks.fromStr(self.main_gui.gui_custo.generate_maskingtape_txt.GetStringSelection())
         pdfgen.generateMaskingTapeColor = list(self.main_gui.gui_custo.generate_maskingtape_txt_color.GetColour())
+        pdfgen.pageNumberTxt = PagesNumbering.fromStr(self.pagenumber_txt.GetStringSelection())
+        print(pdfgen.pageNumberTxt, self.pagenumber_txt.GetStringSelection())
+        pdfgen.pageNumberColor = list(self.pagenumber_color.GetColour())
+        pdfgen.pageNumberSize = self.pagenumber_size.GetValue()
+        pdfgen.pageNumberOpacity = self.pagenumber_opacity.GetValue()
       
         #pdfgen.pdfOutFilename = self.output_fname_display
 

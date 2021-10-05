@@ -22,7 +22,7 @@ class CustoPDFGenerator(PDFGenerator):
     def generateCanvas(self, doc):
         print('Generate the canvas on each page = central panel + (right/left/down/up) if existing + LxCy textbox')
         for h,w in self.orderedPageList:
-            idwh = 'L%sC%s '%(h,w)
+            idwh = 'L%sC%s'%(h,w)
             pagei = doc.load_page(self.pageNumDico[idwh])
             tempsvg = fitz.open(self.getCanvasFile())
             pdfbytes = tempsvg.convert_to_pdf()
@@ -58,10 +58,10 @@ class CustoPDFGenerator(PDFGenerator):
                 
                 
             tempsvg.close()
-            shape = pagei.new_shape() # create Shape
-            shape.insert_textbox(self.canvasShowRectsDico[idwh][Areas.C], 'L%sC%s'%(h,w), fontname = 'courier-bold', fontsize = 48, 
-                                 color = (0.9, 0.9, 0.9), align = fitz.TEXT_ALIGN_CENTER, oc=self.xrefOCGA4In)
-            shape.commit()
+            #shape = pagei.new_shape() # create Shape
+            #shape.insert_textbox(self.canvasShowRectsDico[idwh][Areas.C], 'L%sC%s'%(h,w), fontname = 'courier-bold', fontsize = 48, 
+            #                     color = (0.9, 0.9, 0.9), align = fitz.TEXT_ALIGN_CENTER, oc=self.xrefOCGA4In)
+            #shape.commit()
             
             if self.generateMaskingTapeTxt != TapeMarks.NO:
                 

@@ -12,7 +12,6 @@ import wx
 import os
 import sys
 import shutil
-import fitz
 import utils
 from frozenclass import FrozenClass
 from iotab import IOTab, InOutSelection

@@ -33,6 +33,16 @@ class PagesOrdering(Enum):
 class PagesOrientation(Enum):
      PORTRAIT = 0
      LANDSCAPE = 1
+class PagesNumbering(Enum):
+     NO = 0
+     LXCY = 1
+     NUMBER = 2
+     @classmethod
+     def fromStr(cls, s):
+         if s == "No" : return cls.NO
+         if s == "LxCy" : return cls.LXCY
+         if s == "Page number" : return cls.NUMBER
+         return None
 class Areas(Enum):
     C = 0
     T = 1
@@ -66,6 +76,10 @@ class PDFGenerator(FrozenClass):
         self.orderedPageList = None
         self.needSheetW = None
         self.needSheetH = None
+        self.pageNumberTxt = None
+        self.pageNumberColor = None
+        self.pageNumberSize = None
+        self.pageNumberOpacity = None
         
         self.canvasClipRectsDico = None
         self.canvasShowRectsDico = None
@@ -205,6 +219,34 @@ class PDFGenerator(FrozenClass):
         assert v is None or isinstance(v, int), "assert false needSheetH"
         self.__needSheetH = v
 
+    @property
+    def pageNumberTxt(self): return self.__pageNumberTxt
+    @pageNumberTxt.setter
+    def pageNumberTxt(self, v):
+        assert v is None or isinstance(v, PagesNumbering), "assert false pageNumberTxt"
+        self.__pageNumberTxt = v
+
+    @property
+    def pageNumberColor(self): return self.__pageNumberColor
+    @pageNumberColor.setter
+    def pageNumberColor(self, v):
+        assert v is None or isinstance(v, list), "assert false pageNumberColor"
+        self.__pageNumberColor = v
+
+    @property
+    def pageNumberSize(self): return self.__pageNumberSize
+    @pageNumberSize.setter
+    def pageNumberSize(self, v):
+        assert v is None or isinstance(v, str), "assert false pageNumberSize"
+        self.__pageNumberSize = v
+
+    @property
+    def pageNumberOpacity(self): return self.__pageNumberOpacity
+    @pageNumberOpacity.setter
+    def pageNumberOpacity(self, v):
+        assert v is None or isinstance(v, str), "assert false pageNumberOpacity"
+        self.__pageNumberOpacity = v
+
     def rect_top(self, r, d):
         return fitz.Rect(r.x0, r.y0 - d, r.x1, r.y0)
     def rect_down(self, r, d):
@@ -294,6 +336,14 @@ class PDFGenerator(FrozenClass):
                 print('Something went wrong during canvas generation')
                 print('Exception:', e)
             
+            doc = fitz.open(outputfilenameA4) 
+            try:
+                self.generatePageNumber(doc)
+            except Exception as e:
+                doc.close()
+                print('Something went wrong during page number generation')
+                print('Exception:', e)
+
             try:
                 print('self.generateMergeFilename', self.generateMergeFilename)
                 if self.generateMergeFilename is not None:
@@ -325,6 +375,44 @@ class PDFGenerator(FrozenClass):
     def getCanvasFile(self):
         pass
 
+    def generatePageNumber(self, doc):
+        print('Generate page number')
+                
+        if self.pageNumberTxt == PagesNumbering.NO: return
+        
+        myfont = fitz.Font(fontname='impact', fontfile='impact.ttf', fontbuffer=None, script=0, language=None, 
+                           ordering=-1, is_bold=0, is_italic=0, is_serif=0)
+             
+        for hwi,hw in enumerate(self.orderedPageList):
+            h,w = hw
+            idwh = 'L%sC%s'%(h,w)
+            canvasrect = self.canvasClipRectsDico[Areas.C]
+            pagei = doc.load_page(self.pageNumDico[idwh])
+            pgtxt = idwh if self.pageNumberTxt == PagesNumbering.LXCY else '%s'%hwi
+            pgtxtwidth = myfont.text_length(pgtxt, int(self.pageNumberSize))
+            pgtxtHmin = int(self.pageNumberSize) * min([myfont.glyph_bbox(ord(x)).y0 for x in pgtxt])
+            pgtxtHmax = int(self.pageNumberSize) * max([myfont.glyph_bbox(ord(x)).y1 for x in pgtxt])
+            pgtxtheight = pgtxtHmax-pgtxtHmin
+            print('pgtxtwidth', pgtxtwidth)
+            print('pgtxtheight', pgtxtHmax, pgtxtHmin, pgtxtHmax-pgtxtHmin)
+            rgb = [x/255.0 for x in self.pageNumberColor[:-1]]
+            
+            x = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES else self.deltaW) + canvasrect.width/2.0 - pgtxtwidth/2.0 
+            y = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES else self.deltaH) + canvasrect.height/2.0 - pgtxtheight/2.0 
+            
+            '''pivot = fitz.Point(rect.x0, rect.y0 + rect.height/2) #middle of left side
+            matrix = fitz.Matrix(textwidth/rect.width, 1.0)
+            r2 = page.insertTextbox(token.rect, f'{word}', color=(1,0,0), morph=(pivot, matrix))'''
+            print(canvasrect, fitz.Rect(200,200,200+pgtxtwidth,200+pgtxtheight))
+            pagei.insertTextbox(fitz.Rect(x,y,x+pgtxtwidth,y+pgtxtheight), pgtxt, fontsize=int(self.pageNumberSize), 
+                                fontname='impact', fontfile='impact.ttf', color=rgb, 
+                                fill=rgb, render_mode=0, border_width=1, encoding=fitz.TEXT_ENCODING_LATIN, 
+                                expandtabs=8, align=fitz.TEXT_ALIGN_LEFT, rotate=0, morph=None, 
+                                stroke_opacity=1, fill_opacity=int(self.pageNumberOpacity)/100.0, oc=self.xrefOCGA4In, overlay=True)
+
+        doc.saveIncr()
+        doc.close()            	
+            
     def getCanvasRectAndNbSheetWH(self):
         canvasdoc = fitz.open(self.getCanvasFile())
         canvasdoc = canvasdoc.convert_to_pdf()
@@ -346,7 +434,7 @@ class PDFGenerator(FrozenClass):
                 tempsvg = fitz.open("pdf", pdfbytes) 
                 print('Generate the layer %s on each page = central panel + (right/left/down/up) if existing'%k)
                 for h,w in self.orderedPageList:
-                    idwh = 'L%sC%s '%(h,w)
+                    idwh = 'L%sC%s'%(h,w)
                     curPage = self.pageNumDico[idwh] 
                     pagei = doc.load_page(curPage)
                     
@@ -438,7 +526,7 @@ class PDFGenerator(FrozenClass):
         self.patternClipRectsDico = dict()
         self.pageNumDico = dict()
         for h,w in self.orderedPageList:
-            idwh = 'L%sC%s '%(h,w)
+            idwh = 'L%sC%s'%(h,w)
             self.pageNumDico[idwh] = len(self.pageNumDico.keys())
     
             condL = w > 0 and self.generateSheetTrimming == CanvasOnSheet.CENTERED
