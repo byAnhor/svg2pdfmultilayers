@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(['svg2pdfmultilayers.py'],
-             pathex=['C:\\Users\\anita\\Documents\\GITHub\\SVG_PDF_Multilayers'],
+             pathex=['C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2'],
              binaries=[],
              datas=[('*.py', 'sources')],
              hiddenimports=[],
@@ -25,6 +25,12 @@ a.datas += [('topdown.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilay
 a.datas += [('leftright.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\leftright.png','DATA')]
 a.datas += [('portrait.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\portrait.png','DATA')]
 a.datas += [('landscape.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\landscape.png','DATA')]
+a.datas += [('custoload.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\custoload.ico','DATA')]
+a.datas += [('custosave.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\custosave.ico','DATA')]
+a.datas += [('topleft.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\topleft.png','DATA')]
+a.datas += [('center.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\center.png','DATA')]
+a.datas += [('nocanvas.svg','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\nocanvas.svg','DATA')]
+a.datas += [('impact.ttf','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\impact.ttf','DATA')]
              
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
