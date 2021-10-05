@@ -8,11 +8,22 @@
 
 
 import os
+import sys
 import fitz
 import math
 from enum import Enum
 from abc import abstractmethod
 from frozenclass import FrozenClass
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 class CanvasOnSheet(Enum):
      CENTERED = 0
@@ -380,7 +391,7 @@ class PDFGenerator(FrozenClass):
                 
         if self.pageNumberTxt == PagesNumbering.NO: return
         
-        myfont = fitz.Font(fontname='impact', fontfile='impact.ttf', fontbuffer=None, script=0, language=None, 
+        myfont = fitz.Font(fontname='impact', fontfile=resource_path('impact.ttf'), fontbuffer=None, script=0, language=None, 
                            ordering=-1, is_bold=0, is_italic=0, is_serif=0)
              
         for hwi,hw in enumerate(self.orderedPageList):
@@ -405,7 +416,7 @@ class PDFGenerator(FrozenClass):
             r2 = page.insertTextbox(token.rect, f'{word}', color=(1,0,0), morph=(pivot, matrix))'''
             print(canvasrect, fitz.Rect(200,200,200+pgtxtwidth,200+pgtxtheight))
             pagei.insertTextbox(fitz.Rect(x,y,x+pgtxtwidth,y+pgtxtheight), pgtxt, fontsize=int(self.pageNumberSize), 
-                                fontname='impact', fontfile='impact.ttf', color=rgb, 
+                                fontname='impact', fontfile=resource_path('impact.ttf'), color=rgb, 
                                 fill=rgb, render_mode=0, border_width=1, encoding=fitz.TEXT_ENCODING_LATIN, 
                                 expandtabs=8, align=fitz.TEXT_ALIGN_LEFT, rotate=0, morph=None, 
                                 stroke_opacity=1, fill_opacity=int(self.pageNumberOpacity)/100.0, oc=self.xrefOCGA4In, overlay=True)
