@@ -30,6 +30,7 @@ a.datas += [('custosave.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultil
 a.datas += [('topleft.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\topleft.png','DATA')]
 a.datas += [('center.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\center.png','DATA')]
 a.datas += [('nocanvas.svg','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\nocanvas.svg','DATA')]
+a.datas += [('impact.ttf','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\impact.ttf','DATA')]
              
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
