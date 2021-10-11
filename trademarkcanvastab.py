@@ -93,7 +93,7 @@ class TrademarkCanvasTab(scrolled.ScrolledPanel):
         greycond = not self.preview_image.IsEnabled() or self.trademark_svg_canvas_filename is None
         dc.SetBackground(wx.Brush('grey' if greycond else 'white'))
         dc.Clear()
-        svg = wx.svg.SVGimage.CreateFromFile("nocanvas.svg" if greycond else self.trademark_svg_canvas_filename)
+        svg = wx.svg.SVGimage.CreateFromFile(resource_path("nocanvas.svg") if greycond else self.trademark_svg_canvas_filename)
         dcdim = min(self.preview_image.Size.width, self.preview_image.Size.height)
         imgdim = max(svg.width, svg.height)
         scale = dcdim / imgdim
