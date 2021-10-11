@@ -8,7 +8,6 @@
 
 import sys
 import os
-import shutil
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.buttons as buts
@@ -93,61 +92,56 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         
         left_sizer.Add(boxorientationsizer, flag=wx.EXPAND)
 
-        newline = wx.FlexGridSizer(3,10,10)
+        newline = wx.FlexGridSizer(3,3,10,10)
         self.corner_marks_symbol_mode = ['No', 'Square', 'Diamond', 'Round']   
         self.generate_A4['corner_mark_symbol'] = wx.RadioBox(self, label = 'Corner mark', choices = self.corner_marks_symbol_mode, majorDimension = 4, style = wx.RA_SPECIFY_ROWS)
         self.generate_A4['corner_mark_symbol'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
-        newline.Add(self.generate_A4['corner_mark_symbol'], flag=wx.ALIGN_TOP)
         boxcornermarkcolor = wx.StaticBox(self,label='Corner color')
         boxcornermarkcolorsizer = wx.StaticBoxSizer(boxcornermarkcolor, wx.VERTICAL)
         self.generate_A4['corner_mark_color'] = wx.ColourPickerCtrl(self)
         self.generate_A4['corner_mark_color'].SetColour('blue')
         self.generate_A4['corner_mark_color'].Bind(wx.EVT_COLOURPICKER_CHANGED,self.auto_canvas_construction) 
         boxcornermarkcolorsizer.Add(self.generate_A4['corner_mark_color'], flag=wx.ALL, border=10)        
-        newline.Add(boxcornermarkcolorsizer, flag=wx.ALIGN_TOP|wx.EXPAND)
         self.corner_marks_size_mode = ['Small', 'Medium', 'Large']   
         self.generate_A4['corner_mark_size'] = wx.RadioBox(self, label = 'Corner size', choices = self.corner_marks_size_mode, majorDimension = 4, style = wx.RA_SPECIFY_ROWS)
         self.generate_A4['corner_mark_size'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
-        newline.Add(self.generate_A4['corner_mark_size'], flag=wx.ALIGN_TOP)
         
-        left_sizer.Add(newline, flag=wx.EXPAND)
-
-        newline = wx.FlexGridSizer(3,10,10)
         self.assembly_marks_symbol_mode = ['No', 'Square', 'Diamond', 'Round', 'Ticks']   
         self.generate_A4['assembly_mark_symbol'] = wx.RadioBox(self, label = 'Assembly mark', choices = self.assembly_marks_symbol_mode, majorDimension = 5, style = wx.RA_SPECIFY_ROWS)
         self.generate_A4['assembly_mark_symbol'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
-        newline.Add(self.generate_A4['assembly_mark_symbol'], flag=wx.ALIGN_TOP)
         boxassemblymarkcolor = wx.StaticBox(self,label='Assembly color')
         boxassemblymarkcolorsizer = wx.StaticBoxSizer(boxassemblymarkcolor, wx.VERTICAL)
         self.generate_A4['assembly_mark_color'] = wx.ColourPickerCtrl(self)
         self.generate_A4['assembly_mark_color'].SetColour('blue')
         self.generate_A4['assembly_mark_color'].Bind(wx.EVT_COLOURPICKER_CHANGED,self.auto_canvas_construction) 
         boxassemblymarkcolorsizer.Add(self.generate_A4['assembly_mark_color'], flag=wx.ALL, border=10)        
-        newline.Add(boxassemblymarkcolorsizer, flag=wx.ALIGN_TOP|wx.EXPAND)
         self.assembly_marks_size_mode = ['Small', 'Medium', 'Large']   
         self.generate_A4['assembly_mark_size'] = wx.RadioBox(self, label = 'Assembly size', choices = self.assembly_marks_size_mode, majorDimension = 4, style = wx.RA_SPECIFY_ROWS)
         self.generate_A4['assembly_mark_size'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
-        newline.Add(self.generate_A4['assembly_mark_size'], flag=wx.ALIGN_TOP)
 
-        left_sizer.Add(newline, flag=wx.EXPAND)
-
-        newline = wx.FlexGridSizer(3,10,10)
         self.maskingtape_txt_mode = ['No', 'LxCy', 'A-A']     
         self.generate_maskingtape_txt = wx.RadioBox(self, label = 'Masking tape text', choices = self.maskingtape_txt_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
         self.generate_maskingtape_txt.Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
-        newline.Add(self.generate_maskingtape_txt, flag=wx.ALIGN_TOP)
         boxmaskingtapetxtcolor = wx.StaticBox(self,label='Text color')
         boxmaskingtapetxtcolorsizer = wx.StaticBoxSizer(boxmaskingtapetxtcolor, wx.VERTICAL)
         self.generate_maskingtape_txt_color = wx.ColourPickerCtrl(self)
         self.generate_maskingtape_txt_color.SetColour('blue')
         self.generate_maskingtape_txt_color.Bind(wx.EVT_COLOURPICKER_CHANGED,self.auto_canvas_construction) 
         boxmaskingtapetxtcolorsizer.Add(self.generate_maskingtape_txt_color, flag=wx.ALL, border=10)        
-        newline.Add(boxmaskingtapetxtcolorsizer, flag=wx.ALIGN_TOP|wx.EXPAND)
-        
+
+        newline.AddMany([(self.generate_A4['corner_mark_symbol'], 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (boxcornermarkcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (self.generate_A4['corner_mark_size'], 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (self.generate_A4['assembly_mark_symbol'], 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (boxassemblymarkcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (self.generate_A4['assembly_mark_size'], 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (self.generate_maskingtape_txt, 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (boxmaskingtapetxtcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND)])
+                         
         left_sizer.Add(newline, flag=wx.EXPAND)
 
         return left_sizer
-
+    
     def on_generate_A4_landscape_or_portrait_toggle(self,event):  
         if self.generate_A4['landscape_or_portrait_toggle'].GetValue():
             self.generate_A4['landscape_or_portrait_toggle'].SetBitmap(wx.Bitmap(resource_path("landscape.png")))
@@ -177,6 +171,10 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                         self.generate_A4[k].Unbind(wx.EVT_SLIDER)
                         self.generate_A4[k].SetValue(data[k][1])
                         self.generate_A4[k].Bind(wx.EVT_SLIDER, self.auto_canvas_construction)
+                    elif data[k][0] == 'wx.CheckBox':
+                        self.generate_A4[k].Unbind(wx.EVT_CHECKBOX)
+                        self.generate_A4[k].SetValue(data[k][1])
+                        self.generate_A4[k].Bind(wx.EVT_CHECKBOX, self.auto_canvas_construction)
                     elif data[k][0] == 'wx.RadioBox':
                         self.generate_A4[k].Unbind(wx.EVT_RADIOBUTTON)
                         self.generate_A4[k].SetSelection(data[k][1])
@@ -205,6 +203,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                 if isinstance(self.generate_A4[k], wx.ToggleButton):       data[k] = ('wx.ToggleButton', self.generate_A4[k].GetValue())
                 elif isinstance(self.generate_A4[k], wx.Slider):           data[k] = ('wx.Slider', self.generate_A4[k].GetValue())
                 elif isinstance(self.generate_A4[k], wx.RadioBox):         data[k] = ('wx.RadioBox', self.generate_A4[k].GetSelection())
+                elif isinstance(self.generate_A4[k], wx.CheckBox):         data[k] = ('wx.CheckBox', self.generate_A4[k].GetValue())
                 elif isinstance(self.generate_A4[k], wx.ColourPickerCtrl): data[k] = ('wx.ColourPickerCtrl', '/'.join([str(rgb) for rgb in self.generate_A4[k].GetColour()]))
                 else: print('Unknow instance')
                 
@@ -309,11 +308,10 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                 shape.draw_line((i*percentW/3, percentH), (i*percentW/3, percentH-assemblysymbsize))
             shape.finish(width=3, color=ac[:-1], fill=ac[:-1], fill_opacity=0.5)
             
-            
-            
         shape.draw_rect(fitz.Rect(0,0,percentW,percentH))
         shape.finish(width=2, color=(0,0,0), fill_opacity=0.5)
         shape.commit()
+                  
         doc = doc.convert_to_pdf()
         doc = fitz.open("pdf", doc)
         doc.save(self.temp_canvas_pdf)

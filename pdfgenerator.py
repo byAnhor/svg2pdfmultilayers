@@ -92,6 +92,8 @@ class PDFGenerator(FrozenClass):
         self.pageNumberSize = None
         self.pageNumberOpacity = None
         
+        self.watermark = None
+        
         self.canvasClipRectsDico = None
         self.canvasShowRectsDico = None
         self.patternShowRectsDico = None
@@ -102,6 +104,10 @@ class PDFGenerator(FrozenClass):
         self.xrefOCGA4Out = None
         self.deltaW = None
         self.deltaH = None
+        
+        self.myfont = fitz.Font(fontname='impact', fontfile=resource_path('impact.ttf'), fontbuffer=None, script=0, language=None, 
+                                ordering=-1, is_bold=0, is_italic=0, is_serif=0)
+
 
         self._freeze()
         
@@ -258,6 +264,14 @@ class PDFGenerator(FrozenClass):
         assert v is None or isinstance(v, str), "assert false pageNumberOpacity"
         self.__pageNumberOpacity = v
 
+    @property
+    def watermark(self): return self.__watermark
+    @watermark.setter
+    def watermark(self, v):
+        assert v is None or isinstance(v, dict), "assert false watermark"
+        self.__watermark = v
+
+
     def rect_top(self, r, d):
         return fitz.Rect(r.x0, r.y0 - d, r.x1, r.y0)
     def rect_down(self, r, d):
@@ -305,6 +319,15 @@ class PDFGenerator(FrozenClass):
                     else: print('Hidden', k)
                 doc.close()
             except: doc.close()
+
+            doc = fitz.open(outputfilenameA0) 
+            try:
+                self.generateWatermarkA0(doc)
+            except Exception as e:
+                doc.close()
+                print('Something went wrong during watermarking generation')
+                print('Exception:', e)
+                doc.close()
                
     def runA4(self, outputfilenameA4):
         
@@ -355,6 +378,14 @@ class PDFGenerator(FrozenClass):
                 print('Something went wrong during page number generation')
                 print('Exception:', e)
 
+            doc = fitz.open(outputfilenameA4) 
+            try:
+                self.generateWatermarkA4(doc)
+            except Exception as e:
+                doc.close()
+                print('Something went wrong during watermarking generation')
+                print('Exception:', e)
+
             try:
                 print('self.generateMergeFilename', self.generateMergeFilename)
                 if self.generateMergeFilename is not None:
@@ -386,6 +417,81 @@ class PDFGenerator(FrozenClass):
     def getCanvasFile(self):
         pass
 
+    def generateWatermarkA0(self, doc):
+        print('Generate watermarking A0')
+        page0 = doc.load_page(0) 
+        self.generateWatermark(doc, page0, page0.rect, True)
+        doc.saveIncr()
+        doc.close()            	
+
+    def generateWatermarkA4(self, doc):
+        print('Generate watermarking A4')
+        for hwi,hw in enumerate(self.orderedPageList):
+            h,w = hw
+            idwh = 'L%sC%s'%(h,w)
+            pagei = doc.load_page(self.pageNumDico[idwh]) 
+            self.generateWatermark(doc, pagei, self.canvasClipRectsDico[Areas.C], False)
+        doc.saveIncr()
+        doc.close()            	
+        
+    def generateWatermark(self, doc, pagei, centerrect, isfull):
+        for ii,i in enumerate(['top','down','left','right']):
+            if self.watermark['watermark_%s'%i].GetValue() is True:
+                ipwatermark = len(self.watermark['watermark_%s_fullpath'%i].GetLabel()) == 0
+                if not ipwatermark:
+                    docw = fitz.open(self.tempPath + "watermark_rot_%s.pdf"%i)
+                    docw = docw.convertToPDF()
+                    docw = fitz.open("pdf", docw)
+                    pagew = docw.load_page(0)
+                    pgtxtwidth = pagew.rect.width
+                    pgtxtheight = pagew.rect.height                       
+                else:
+                    pgtxt = self.maingui.macadress
+                    pgtxtwidth = self.myfont.text_length(pgtxt, 10)
+                    pgtxtHmin = 10 * min([self.myfont.glyph_bbox(ord(x)).y0 for x in pgtxt])
+                    pgtxtHmax = 10 * max([self.myfont.glyph_bbox(ord(x)).y1 for x in pgtxt])
+                    pgtxtheight = pgtxtHmax-pgtxtHmin
+                    
+                x = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES or isfull else self.deltaW)
+                y = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES or isfull else self.deltaH)
+                
+                if i == 'top':
+                    x = x + centerrect.width/2.0 - pgtxtwidth/2.0 
+                    y = y 
+                    morph = None
+                elif i == 'down':
+                    x = x + centerrect.width/2.0 - pgtxtwidth/2.0 
+                    y = y + centerrect.height - pgtxtheight 
+                    morph = None
+                elif i == 'left':
+                    if not ipwatermark:
+                        x = x 
+                    else:
+                        x = x - pgtxtwidth/2.0 + pgtxtheight/2.0
+                    y = y + centerrect.height/2.0 - pgtxtheight/2.0 
+                    pivot = fitz.Point(x+pgtxtwidth/2.0,y+pgtxtheight/2.0) 
+                    matrix = fitz.Matrix(-90)
+                    morph = (pivot, matrix)
+                elif i == 'right':
+                    if not ipwatermark:
+                        x = x + centerrect.width - pgtxtwidth
+                    else:
+                        x = x + centerrect.width - pgtxtwidth/2.0 - pgtxtheight/2.0 
+                    y = y + centerrect.height/2.0 - pgtxtheight/2.0 
+                    pivot = fitz.Point(x+pgtxtwidth/2.0,y+pgtxtheight/2.0) 
+                    matrix = fitz.Matrix(90)
+                    morph = (pivot, matrix)
+                    
+                if not ipwatermark:
+                    pagei.showPDFpage(fitz.Rect(x,y,x+pgtxtwidth,y+pgtxtheight), docw, pno=0, keep_proportion=True, overlay=True, oc=0, rotate=0, clip=None)
+                    docw.close()
+                else:
+                    pagei.insertTextbox(fitz.Rect(x,y,x+pgtxtwidth,y+pgtxtheight), pgtxt, fontsize=10, 
+                                        fontname='impact', fontfile=resource_path('impact.ttf'), color=(0,0,0), 
+                                        fill=(0,0,0), render_mode=0, border_width=1, encoding=fitz.TEXT_ENCODING_LATIN, 
+                                        expandtabs=8, align=fitz.TEXT_ALIGN_LEFT, rotate=0, morph=morph, 
+                                        stroke_opacity=1, fill_opacity=int(self.pageNumberOpacity)/100.0, oc=None, overlay=True)
+
     def generatePageNumber(self, doc):
         print('Generate page number')
                 
@@ -404,8 +510,6 @@ class PDFGenerator(FrozenClass):
             pgtxtHmin = int(self.pageNumberSize) * min([myfont.glyph_bbox(ord(x)).y0 for x in pgtxt])
             pgtxtHmax = int(self.pageNumberSize) * max([myfont.glyph_bbox(ord(x)).y1 for x in pgtxt])
             pgtxtheight = pgtxtHmax-pgtxtHmin
-            print('pgtxtwidth', pgtxtwidth)
-            print('pgtxtheight', pgtxtHmax, pgtxtHmin, pgtxtHmax-pgtxtHmin)
             rgb = [x/255.0 for x in self.pageNumberColor[:-1]]
             
             x = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES else self.deltaW) + canvasrect.width/2.0 - pgtxtwidth/2.0 
@@ -631,6 +735,7 @@ class PDFGenerator(FrozenClass):
         except Exception as e:  print('Except : run A4', e)
         
         print('Done !')
+        return [pdfOutFilenameA0]
         
 
 if __name__ == '__main__':
