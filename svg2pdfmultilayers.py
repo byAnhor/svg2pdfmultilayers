@@ -17,6 +17,7 @@ from frozenclass import FrozenClass
 from iotab import IOTab, InOutSelection
 from custocanvastab import CustoCanvasTab
 from trademarkcanvastab import TrademarkCanvasTab
+import re, uuid
 
 try:
     import pyi_splash
@@ -41,6 +42,7 @@ class byAnhorGUI(FrozenClass, wx.Frame):
         self.gui_io = None
         self.gui_custo = None
         self.gui_trademark = None
+        self.macadress = ':'.join(re.findall('..', '%012x' % uuid.getnode()))
                 
         self.draw_gui(kw['size'])
         
