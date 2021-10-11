@@ -69,13 +69,20 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         newline.Add(self.generate_hidden_layers, flag=wx.ALL, border=10)
         globalsizer.Add(newline,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
 
+        leftrightsizer = wx.FlexGridSizer(1,2,0,0)
+        globalsizer.Add(leftrightsizer,flag=wx.TOP|wx.LEFT|wx.RIGHT,border=10)
+
+        leftsizer = wx.BoxSizer(wx.VERTICAL)
+        rightsizer = wx.BoxSizer(wx.VERTICAL)
+        leftrightsizer.AddMany([(leftsizer, wx.ALIGN_TOP|wx.EXPAND),(rightsizer, wx.ALIGN_TOP|wx.EXPAND)])
+        
         self.boxA0 = wx.StaticBox(self,label='Full size PDF generation')
         boxA0sizer = wx.StaticBoxSizer(self.boxA0, wx.VERTICAL)
         self.generate_a0 = wx.CheckBox(self,label='Generate full size PDF')
         self.generate_a0.SetValue(1)
         self.generate_a0.Bind(wx.EVT_CHECKBOX,self.on_generate_a0a4_checked)
         boxA0sizer.Add(self.generate_a0, flag=wx.ALL, border=10)
-        globalsizer.Add(boxA0sizer, flag=wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT, border=10)
+        leftsizer.Add(boxA0sizer, flag=wx.EXPAND|wx.LEFT|wx.RIGHT, border=10)
 
         self.boxA4 = wx.StaticBox(self,label='A4 PDF generation')
         boxA4sizer = wx.StaticBoxSizer(self.boxA4, wx.VERTICAL)
@@ -85,7 +92,6 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         boxA4sizer.Add(self.generate_a4, flag=wx.ALL, border=10)
         
         newline = wx.BoxSizer(wx.HORIZONTAL)
-        newline.Add(wx.StaticText(self, label='    '))
         self.generate_merged_pdf = wx.CheckBox(self,label='Generate merged PDF')
         self.generate_merged_pdf.SetValue(0)
         newline.Add(self.generate_merged_pdf, flag=wx.ALIGN_TOP)
@@ -165,7 +171,43 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         newline.Add(boxpagenumbertxtopacitysizer, flag=wx.ALIGN_TOP|wx.EXPAND)
         boxA4sizer.Add(newline, flag=wx.ALL, border=10)
  
-        globalsizer.Add(boxA4sizer, flag=wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT, border=10)
+        leftsizer.Add(boxA4sizer, flag=wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT, border=10)
+
+        boxwatermark = wx.StaticBox(self,label='Watermarking top/down/left/right')
+        boxwatermarksizer = wx.StaticBoxSizer(boxwatermark, wx.VERTICAL)
+        newline = wx.FlexGridSizer(4,4,10,10)
+        self.generate_watermarking = dict()
+        for ii,i in enumerate(['top','down','left','right']):
+            self.generate_watermarking['watermark_%s'%i] = wx.CheckBox(self,label='Add watermark at %s'%i)
+            self.generate_watermarking['watermark_%s'%i].Bind(wx.EVT_CHECKBOX, self.on_generate_watermark_enabled)
+            self.generate_watermarking['watermark_%s'%i].SetValue(0)
+            self.generate_watermarking['watermark_%s_basename'%i] = wx.StaticText(self,label=self.main_gui.macadress)
+            self.generate_watermarking['watermark_%s_basename'%i].Enable(False)
+            self.generate_watermarking['watermark_%s_fullpath'%i] = wx.StaticText(self,label='')
+            self.generate_watermarking['watermark_%s_fullpath'%i].Show(False)
+            self.generate_watermarking['watermark_%s_button'%i] = buts.GenBitmapTextButton(self, bitmap=wx.Bitmap(resource_path("openXS.ico")), size=(15,15), label= "")
+            self.generate_watermarking['watermark_%s_button'%i].Bind(wx.EVT_BUTTON,self.on_generate_watermark_filename)
+            self.generate_watermarking['watermark_%s_button'%i].Enable(False)
+            
+        newline.AddMany([(self.generate_watermarking['watermark_top']),
+                         (self.generate_watermarking['watermark_top_button']), 
+                         (self.generate_watermarking['watermark_top_basename']), 
+                         (self.generate_watermarking['watermark_top_fullpath']), 
+                         (self.generate_watermarking['watermark_down']),
+                         (self.generate_watermarking['watermark_down_button']), 
+                         (self.generate_watermarking['watermark_down_basename']),
+                         (self.generate_watermarking['watermark_down_fullpath']),
+                         (self.generate_watermarking['watermark_left']),
+                         (self.generate_watermarking['watermark_left_button']), 
+                         (self.generate_watermarking['watermark_left_basename']),
+                         (self.generate_watermarking['watermark_left_fullpath']),
+                         (self.generate_watermarking['watermark_right']),
+                         (self.generate_watermarking['watermark_right_button']), 
+                         (self.generate_watermarking['watermark_right_basename']), 
+                         (self.generate_watermarking['watermark_right_fullpath'])])
+        boxwatermarksizer.Add(newline, flag=wx.ALL|wx.EXPAND, border=10)
+
+        rightsizer.Add(boxwatermarksizer, flag=wx.EXPAND)
 
         self.on_generate_a0a4_checked(event=None)
         self.on_generate_scanning_order_toggle(event=None)  
@@ -188,6 +230,11 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         self.generate_a0_checked = bool(self.generate_a0.GetValue())
         self.generate_a4_checked = bool(self.generate_a4.GetValue())
         self.generate_scanning_order_toggle.Enable(self.generate_a4_checked)
+        self.use_trademark_canvas.Enable(self.generate_a4_checked)
+        self.pagenumber_txt.Enable(self.generate_a4_checked)
+        self.pagenumber_color.Enable(self.generate_a4_checked)
+        self.pagenumber_size.Enable(self.generate_a4_checked)
+        self.pagenumber_opacity.Enable(self.generate_a4_checked)
         if self.main_gui.gui_custo is not None: 
             self.main_gui.gui_custo.Enable(self.generate_a4_checked)
         self.generate_sheet_trimming_toggle.Enable(self.generate_a4_checked)
@@ -201,6 +248,33 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         else:
             self.boxA4.SetLabel("A4 PDF generation")
             
+    def on_generate_watermark_enabled(self, event):
+        for ii,i in enumerate(['top','down','left','right']):
+            if event.GetId() == self.generate_watermarking['watermark_%s'%i].GetId():
+                self.generate_watermarking['watermark_%s_button'%i].Enable(event.IsChecked())        
+                self.generate_watermarking['watermark_%s_basename'%i].Enable(event.IsChecked()) 
+                if event.IsChecked() is False:
+                    self.generate_watermarking['watermark_%s_basename'%i].SetLabel(self.main_gui.macadress)
+                    self.generate_watermarking['watermark_%s_fullpath'%i].SetLabel('')
+            
+    def on_generate_watermark_filename(self, event):
+        with wx.FileDialog(self, 'Select input SVG', defaultDir=self.main_gui.working_dir,
+                           wildcard='SVG files (*.svg)|*.svg',
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL: return
+            allrotatetdlr = [180,0,90,-90]
+            for ii,i in enumerate(['top','down','left','right']):
+                if event.GetId() == self.generate_watermarking['watermark_%s_button'%i].GetId():
+                    self.generate_watermarking['watermark_%s_basename'%i].SetLabel(os.path.basename(fileDialog.GetPath())) 
+                    self.generate_watermarking['watermark_%s_fullpath'%i].SetLabel("watermark_rot_%s.pdf"%i)
+                    docw = fitz.open(fileDialog.GetPath())
+                    docw = docw.convertToPDF()
+                    docw = fitz.open("pdf", docw)
+                    docw.save(self.main_gui.temp_path + "watermark_rot_%s.pdf"%i) 
+                    pagew = docw.load_page(0)
+                    pagew.setRotation(allrotatetdlr[ii])
+                    docw.save(self.main_gui.temp_path + "watermark_rot_%s.pdf"%i) 
+
     def on_generate_scanning_order_toggle(self,event):
         if self.generate_scanning_order_toggle.GetValue():
             self.generate_scanning_order_toggle.SetBitmap(wx.Bitmap(resource_path("leftright.png")))
@@ -212,10 +286,10 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
     def on_generate_sheet_trimming_toggle(self,event):
         if self.generate_sheet_trimming_toggle.GetValue():
             self.generate_sheet_trimming_toggle.SetBitmap(wx.Bitmap(resource_path("center.png")))
-            self.sheet_trimming_infobulle.SetLabel('Need to cut 2 sides before assembling')
+            self.sheet_trimming_infobulle.SetLabel('Need to cut 2 sides\nbefore assembling')
         else:
             self.generate_sheet_trimming_toggle.SetBitmap(wx.Bitmap(resource_path("topleft.png")))
-            self.sheet_trimming_infobulle.SetLabel('Only superimpose sheets')
+            self.sheet_trimming_infobulle.SetLabel('Only superimpose\nsheets')
 
     def on_use_trademark_canvas_checked(self,event):
         self.main_gui.manage_access_to_custo_or_trademark_canvas(self.use_trademark_canvas.GetValue())
@@ -267,6 +341,8 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         pdfgen.pageNumberColor = list(self.pagenumber_color.GetColour())
         pdfgen.pageNumberSize = self.pagenumber_size.GetValue()
         pdfgen.pageNumberOpacity = self.pagenumber_opacity.GetValue()
+        pdfgen.watermark = self.generate_watermarking
+        print(pdfgen.watermark)
       
         #pdfgen.pdfOutFilename = self.output_fname_display
 
@@ -288,8 +364,38 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
                 pdfgen.pdfOutFilename = outdata['out_%s'%pdfgen.fullPatternSvg]
 
         #for l in pdfgen.fullPatternSvgPerLayer.keys():
-        pdfgen.run()
-    
+        genFiles = pdfgen.run()
+        
+        for f in genFiles:
+            doc = fitz.open(f)  
+            page0 = doc.load_page(0)
+            widget = fitz.Widget()
+            widget.rect = page0.rect
+            widget.field_type = fitz.PDF_WIDGET_TYPE_BUTTON 
+            widget.field_type_string = "Button"
+            widget.script = 'app.alert("clicked")'
+            widget.script = "var annt = this.getAnnots(); \n annt.forEach(function (item, index) { \n try{ \n var span = item.richContents; \n span.forEach(function (it, dx) {it.fontWeight = 800;}) \n item.richContents = span; \n}\n catch(err){} \n }); \n app.alert('Done');"
+            widget.script = "var annt = this; \n app.alert(annt); \n app.alert(unescape(macAddress));"
+            '''
+            var annt = this.getAnnots(); 
+            annt.forEach(function (item, index) { 
+                try{ 
+                    var span = item.richContents; 
+                    span.forEach(function (it, dx) {it.fontWeight = 800;}) 
+                    item.richContents = span; 
+                }
+                catch(err){} 
+            }); 
+            app.alert('Done');"
+            '''
+            widget.field_type = fitz.PDF_WIDGET_TYPE_TEXT
+            widget.field_name = "copyright"
+            widget.fill_color = (0,0,0)
+            widget.text_color = (1,1,1)
+            page0.addWidget(widget)
+            doc.saveIncr()
+            doc.close()
+            
     def load_svg_file(self,inputfilenamelist):
         self.all_insvg_json = list()
         for f in inputfilenamelist: 
