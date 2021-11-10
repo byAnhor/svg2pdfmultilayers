@@ -570,7 +570,8 @@ class PDFGenerator(FrozenClass):
                                 pagei.show_pdf_page(self.patternShowRectsDico[idwh][area], tempsvg, 0, oc=self.xrefOCG[k], clip=self.patternClipRectsDico[idwh][area])
                                 shape = pagei.new_shape()
                                 shape.draw_rect(self.canvasShowRectsDico[idwh][area])
-                                shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.1 if area == Areas.C else 0.3)
+                                shape.finish(fill = (1.0,1.0,1.0) if area == Areas.C else (0.98,0.98,0.98), 
+                                             fill_opacity=0.1 if area == Areas.C else 0.3)
                                 shape.commit()
                             except Exception as e: print('Warning : Cannot add %s margin to %s, %s'%(area, idwh, e))
 
