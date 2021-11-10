@@ -45,26 +45,17 @@ class From1svgToNpdf(FrozenClass):
         
         svgInDoc = minidom.parse(self.svg_in)
         allL = [l for l in svgInDoc.getElementsByTagName('g') if l.getAttribute("inkscape:groupmode") == 'layer']   
-        hierarchyL = dict()
-        for l in allL:
-            hierarchyL[l] = list()
-            lpn = l.parentNode
-            while lpn is not None:
-                if lpn in allL : hierarchyL[l].append(lpn.getAttribute("inkscape:label"))
-                lpn = lpn.parentNode
-        
         for l in reversed(allL):
             svgInDoc0 = minidom.parse(self.svg_in)
             allOL = [ol for ol in svgInDoc0.getElementsByTagName('g') if ol.getAttribute("inkscape:groupmode") == 'layer']
             for ol in allOL:
-                if l.getAttribute("id") != ol.getAttribute("id") and ol.getAttribute("inkscape:label") not in hierarchyL[l]:
+                if (l.getAttribute("id") != ol.getAttribute("id")):
                     parent = ol.parentNode
                     parent.removeChild(ol)
             str_ = svgInDoc0.toxml()
             displayStr = "_hidden" if "display:none" in l.getAttribute("style") else "_show"
             onesvgbase = svgInFile + displayStr + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
-            #jsondata['layers_filenames'][l.getAttribute("id")] = str(onesvgbase)
-            jsondata['layers_filenames'][l.getAttribute("inkscape:label")] = str(onesvgbase)
+            jsondata['layers_filenames'][l.getAttribute("id")] = str(onesvgbase)
             with open(self.temp_path + onesvgbase, "wb") as out:
                 out.write(str_.encode("UTF-8", "ignore")) 
             print('SVG -> %s layer SVG : %s'%(l.getAttribute("inkscape:label"), onesvgbase))
