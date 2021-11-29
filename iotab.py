@@ -364,37 +364,8 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
                 pdfgen.pdfOutFilename = outdata['out_%s'%pdfgen.fullPatternSvg]
 
         #for l in pdfgen.fullPatternSvgPerLayer.keys():
-        genFiles = pdfgen.run()
+        pdfgen.run()
         
-        for f in genFiles:
-            doc = fitz.open(f)  
-            page0 = doc.load_page(0)
-            widget = fitz.Widget()
-            widget.rect = page0.rect
-            widget.field_type = fitz.PDF_WIDGET_TYPE_BUTTON 
-            widget.field_type_string = "Button"
-            widget.script = 'app.alert("clicked")'
-            widget.script = "var annt = this.getAnnots(); \n annt.forEach(function (item, index) { \n try{ \n var span = item.richContents; \n span.forEach(function (it, dx) {it.fontWeight = 800;}) \n item.richContents = span; \n}\n catch(err){} \n }); \n app.alert('Done');"
-            widget.script = "var annt = this; \n app.alert(annt); \n app.alert(unescape(macAddress));"
-            '''
-            var annt = this.getAnnots(); 
-            annt.forEach(function (item, index) { 
-                try{ 
-                    var span = item.richContents; 
-                    span.forEach(function (it, dx) {it.fontWeight = 800;}) 
-                    item.richContents = span; 
-                }
-                catch(err){} 
-            }); 
-            app.alert('Done');"
-            '''
-            widget.field_type = fitz.PDF_WIDGET_TYPE_TEXT
-            widget.field_name = "copyright"
-            widget.fill_color = (0,0,0)
-            widget.text_color = (1,1,1)
-            page0.addWidget(widget)
-            doc.saveIncr()
-            doc.close()
             
     def load_svg_file(self,inputfilenamelist):
         self.all_insvg_json = list()

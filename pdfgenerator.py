@@ -736,7 +736,6 @@ class PDFGenerator(FrozenClass):
         except Exception as e:  print('Except : run A4', e)
         
         print('Done !')
-        return [pdfOutFilenameA0]
         
 
 if __name__ == '__main__':
