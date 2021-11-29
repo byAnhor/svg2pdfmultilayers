@@ -334,8 +334,8 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         pdfgen.generateSheetTrimming = CanvasOnSheet.CENTERED if self.generate_sheet_trimming_toggle.GetValue() else CanvasOnSheet.PIRATES
         pdfgen.generateScanningOrder = PagesOrdering.LEFTRIGHT if self.generate_scanning_order_toggle.GetValue() else PagesOrdering.TOPDOWN
         pdfgen.generatePagesOrientation = PagesOrientation.LANDSCAPE if self.get_landscape_or_portrait() else PagesOrientation.PORTRAIT
-        pdfgen.generateMaskingTapeTxt = TapeMarks.fromStr(self.main_gui.gui_custo.generate_maskingtape_txt.GetStringSelection())
-        pdfgen.generateMaskingTapeColor = list(self.main_gui.gui_custo.generate_maskingtape_txt_color.GetColour())
+        pdfgen.generateMaskingTapeTxt = TapeMarks.fromStr(self.main_gui.gui_custo.generate_A4['maskingtap_mark_txt'].GetStringSelection())
+        pdfgen.generateMaskingTapeColor = list(self.main_gui.gui_custo.generate_A4['maskingtap_mark_color'].GetColour())
         pdfgen.pageNumberTxt = PagesNumbering.fromStr(self.pagenumber_txt.GetStringSelection())
         print(pdfgen.pageNumberTxt, self.pagenumber_txt.GetStringSelection())
         pdfgen.pageNumberColor = list(self.pagenumber_color.GetColour())

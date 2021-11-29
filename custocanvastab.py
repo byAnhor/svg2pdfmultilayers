@@ -120,14 +120,14 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         self.generate_A4['assembly_mark_size'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
 
         self.maskingtape_txt_mode = ['No', 'LxCy', 'A-A']     
-        self.generate_maskingtape_txt = wx.RadioBox(self, label = 'Masking tape text', choices = self.maskingtape_txt_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
-        self.generate_maskingtape_txt.Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
+        self.generate_A4['maskingtap_mark_txt'] = wx.RadioBox(self, label = 'Masking tape text', choices = self.maskingtape_txt_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
+        self.generate_A4['maskingtap_mark_txt'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
         boxmaskingtapetxtcolor = wx.StaticBox(self,label='Text color')
         boxmaskingtapetxtcolorsizer = wx.StaticBoxSizer(boxmaskingtapetxtcolor, wx.VERTICAL)
-        self.generate_maskingtape_txt_color = wx.ColourPickerCtrl(self)
-        self.generate_maskingtape_txt_color.SetColour('blue')
-        self.generate_maskingtape_txt_color.Bind(wx.EVT_COLOURPICKER_CHANGED,self.auto_canvas_construction) 
-        boxmaskingtapetxtcolorsizer.Add(self.generate_maskingtape_txt_color, flag=wx.ALL, border=10)        
+        self.generate_A4['maskingtap_mark_color'] = wx.ColourPickerCtrl(self)
+        self.generate_A4['maskingtap_mark_color'].SetColour('blue')
+        self.generate_A4['maskingtap_mark_color'].Bind(wx.EVT_COLOURPICKER_CHANGED,self.auto_canvas_construction) 
+        boxmaskingtapetxtcolorsizer.Add(self.generate_A4['maskingtap_mark_color'], flag=wx.ALL, border=10)        
 
         newline.AddMany([(self.generate_A4['corner_mark_symbol'], 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (boxcornermarkcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND), 
@@ -135,7 +135,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                          (self.generate_A4['assembly_mark_symbol'], 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (boxassemblymarkcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (self.generate_A4['assembly_mark_size'], 1, wx.ALIGN_TOP|wx.EXPAND), 
-                         (self.generate_maskingtape_txt, 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (self.generate_A4['maskingtap_mark_txt'], 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (boxmaskingtapetxtcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND)])
                          
         left_sizer.Add(newline, flag=wx.EXPAND)

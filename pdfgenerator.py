@@ -108,12 +108,8 @@ class PDFGenerator(FrozenClass):
         self.myfont = fitz.Font(fontname='impact', fontfile=resource_path('impact.ttf'), fontbuffer=None, script=0, language=None, 
                                 ordering=-1, is_bold=0, is_italic=0, is_serif=0)
 
-
         self._freeze()
         
-        '''self.markercolortxt = (1,0,0)
-        self.markerfillshape = (1,1,0.5)
-        self.markercolorshape = (0,0,0)'''
     def __str__(self):
         return 'PDFGenerator\n    ' + ('\n    '.join("%s: %s" % item for item in vars(self).items()))
         
