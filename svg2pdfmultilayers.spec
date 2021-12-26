@@ -31,6 +31,7 @@ a.datas += [('topleft.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilay
 a.datas += [('center.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\center.png','DATA')]
 a.datas += [('nocanvas.svg','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\nocanvas.svg','DATA')]
 a.datas += [('impact.ttf','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\impact.ttf','DATA')]
+a.datas += [('btn_donate_SM.gif','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\btn_donate_SM.gif','DATA')]
              
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
