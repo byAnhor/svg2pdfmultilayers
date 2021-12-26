@@ -46,8 +46,6 @@ class From1svgTo1svgFlatten(FrozenClass):
     def getAllGroupsDico(self, doc):
         res = dict()
         for g in doc.getElementsByTagName('g'):
-            print(g)
-
             res[g.getAttribute('id')] = {'obj':g}
             res[g.getAttribute('id')]['class'] = (g.getAttribute('class')) if g.hasAttribute('class') else None
             res[g.getAttribute('id')]['style'] = (g.getAttribute('style')) if g.hasAttribute('style') else ""

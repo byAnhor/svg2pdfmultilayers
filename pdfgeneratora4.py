@@ -255,25 +255,21 @@ class PDFGeneratorA4(FrozenClass):
         return xrefOCG
 
     def generateOnePagePattern(self, idwh):
-        docOnePage = fitz.open()
-        docOnePage.set_metadata({'title': os.path.basename(self.pageA4Basename) + '_%s.pdf'%idwh, 'producer': 'svg2pdfmultilayer byAnhor'})
-        onepage = docOnePage.new_page(-1)
+        docOnePage = dict()
+        docOnePage[idwh] = fitz.open()
+        self.xrefOCGA4In = docOnePage[idwh].add_ocg('A4CanvasIn', on=True)
+        self.xrefOCGA4Out = docOnePage[idwh].add_ocg('A4CanvasOut')
+        docOnePage[idwh].set_ocmd(xref=0, ocgs=[self.xrefOCGA4In,self.xrefOCGA4Out], policy="AnyOn", ve=None)
+        self.xrefOCG = self.generateOneOCGperLayer(docOnePage[idwh]) 
+        onepage = docOnePage[idwh].new_page(-1)
         if self.generatePagesOrientation == PagesOrientation.LANDSCAPE:
             rotW = onepage.rect.width
             rotH = onepage.rect.height
-            docOnePage.delete_page(-1)
-            onepage = docOnePage.new_page(-1, width = rotH, height = rotW) 
+            docOnePage[idwh].delete_page(-1)
+            onepage = docOnePage[idwh].new_page(-1, width = rotH, height = rotW) 
         res = onepage.rect
-        docOnePage.save(self.pageA4Basename + '_%s.pdf'%idwh)
-        docOnePage.close()
-
-        with fitz.open(self.pageA4Basename + '_%s.pdf'%idwh) as docOnePage:
-            self.xrefOCGA4In = docOnePage.add_ocg('A4CanvasIn', on=True)
-            self.xrefOCGA4Out = docOnePage.add_ocg('A4CanvasOut')
-            docOnePage.set_ocmd(xref=0, ocgs=[self.xrefOCGA4In,self.xrefOCGA4Out], policy="AnyOn", ve=None)
-            self.xrefOCG = self.generateOneOCGperLayer(docOnePage) 
-            docOnePage.saveIncr()
-
+        docOnePage[idwh].save(self.pageA4Basename + '_%s.pdf'%idwh)
+        docOnePage[idwh].close()
         return res
 
     def getAreasCondition(self):
