@@ -11,39 +11,25 @@ import os
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.buttons as buts
-from enum import Enum
 from frozenclass import FrozenClass
-from from1svgtonpdf import From1svgToNpdf
-from pdfgenerator import CanvasOnSheet, PagesOrdering, PagesOrientation, TapeMarks, PagesNumbering
+from enums import CanvasOnSheet, PagesOrdering, PagesOrientation, TapeMarks, PagesNumbering
+from pdfgeneratora0 import PDFGeneratorA0
 from custopdfgenerator import CustoPDFGenerator
 from trademarkpdfgenerator import TrademarkPDFGenerator
+from generationalgoinput import GenerationAlgoInput
+from generationalgooutput import GenerationAlgoOutput, OutputSelection
+from ressourcespath import resource_path
 import json
 import fitz
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-class InOutSelection(Enum):
-     NONE = 0
-     ONE_SVG = 1
-     SEVERAL_SVG = 2
 
 class IOTab(FrozenClass, scrolled.ScrolledPanel):
     def __init__(self,parent,main_gui):
         super(IOTab, self).__init__(parent)
         
         self.main_gui = main_gui
-        self.algo_from_1svg_to_npdf = From1svgToNpdf(self.main_gui.temp_path)
-        self.input_is_selected = InOutSelection.NONE
-        self.output_is_selected = InOutSelection.NONE
-        self.all_insvg_json = None
+        self.generation_algo_input = GenerationAlgoInput(main_gui)
+        self.generation_algo_input.algo_Nsvg_as_1jsonfile = main_gui.temp_path + 'algo_Nsvg_as_1jsonfile.json'
+        self.generation_algo_output = GenerationAlgoOutput(main_gui)
         
         globalsizer = wx.FlexGridSizer(6,1,10,10)
 
@@ -87,7 +73,8 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         self.boxA4 = wx.StaticBox(self,label='A4 PDF generation')
         boxA4sizer = wx.StaticBoxSizer(self.boxA4, wx.VERTICAL)
         self.generate_a4 = wx.CheckBox(self,label='Generate A4')
-        self.generate_a4.SetValue(1)
+        self.generate_a4.Enable(0)
+        self.generate_a4.SetValue(0)
         self.generate_a4.Bind(wx.EVT_CHECKBOX,self.on_generate_a0a4_checked)
         boxA4sizer.Add(self.generate_a4, flag=wx.ALL, border=10)
         
@@ -240,11 +227,11 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         self.generate_sheet_trimming_toggle.Enable(self.generate_a4_checked)
         self.generate_merged_pdf.Enable(self.generate_a4_checked)
         if self.generate_a0_checked and self.output_fname_display.Label != 'None':
-            self.boxA0.SetLabel("Full size PDF generation : %s"%self.output_fname_display.Label.replace('.pdf', '.A0.pdf'))
+            self.boxA0.SetLabel("Full size PDF generation : %s"%os.path.basename(self.output_fname_display.Label).replace('.pdf', '.A0.pdf'))
         else:
             self.boxA0.SetLabel("Full size PDF generation")
         if self.generate_a4_checked and self.output_fname_display.Label != 'None':
-            self.boxA4.SetLabel("A4 PDF generation : %s"%self.output_fname_display.Label.replace('.pdf', '.A4.pdf'))
+            self.boxA4.SetLabel("A4 PDF generation : %s"%os.path.basename(self.output_fname_display.Label).replace('.pdf', '.A4.pdf'))
         else:
             self.boxA4.SetLabel("A4 PDF generation")
             
@@ -325,111 +312,66 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
             print('Your own canvas seams to be %s'%('LANDSCAPE' if landscape_or_portrait else 'PORTRAIT'))
         return landscape_or_portrait
 
-    def run_layer_filter(self, jsonfilename, index):
+    def run_layer_filter(self, alljsondico, index):
         
-        pdfgen = TrademarkPDFGenerator(self.main_gui) if self.use_trademark_canvas.GetValue() else CustoPDFGenerator(self.main_gui)
-        pdfgen.generateA0 = self.generate_a0_checked
-        pdfgen.generateA4 = self.generate_a4_checked
-        pdfgen.generateHiddenLayers = self.generate_hidden_layers.GetValue()
-        pdfgen.generateSheetTrimming = CanvasOnSheet.CENTERED if self.generate_sheet_trimming_toggle.GetValue() else CanvasOnSheet.PIRATES
-        pdfgen.generateScanningOrder = PagesOrdering.LEFTRIGHT if self.generate_scanning_order_toggle.GetValue() else PagesOrdering.TOPDOWN
-        pdfgen.generatePagesOrientation = PagesOrientation.LANDSCAPE if self.get_landscape_or_portrait() else PagesOrientation.PORTRAIT
-        pdfgen.generateMaskingTapeTxt = TapeMarks.fromStr(self.main_gui.gui_custo.generate_maskingtape_txt.GetStringSelection())
-        pdfgen.generateMaskingTapeColor = list(self.main_gui.gui_custo.generate_maskingtape_txt_color.GetColour())
-        pdfgen.pageNumberTxt = PagesNumbering.fromStr(self.pagenumber_txt.GetStringSelection())
-        print(pdfgen.pageNumberTxt, self.pagenumber_txt.GetStringSelection())
-        pdfgen.pageNumberColor = list(self.pagenumber_color.GetColour())
-        pdfgen.pageNumberSize = self.pagenumber_size.GetValue()
-        pdfgen.pageNumberOpacity = self.pagenumber_opacity.GetValue()
-        pdfgen.watermark = self.generate_watermarking
-        print(pdfgen.watermark)
-      
-        #pdfgen.pdfOutFilename = self.output_fname_display
+        pdfgenA0 = PDFGeneratorA0()
+        pdfgenA0.generateA0 = self.generate_a0_checked
 
-        with open(jsonfilename) as jsonfile:
-            patterndata = json.load(jsonfile)
-            pdfgen.tempPath = patterndata['temp_path']
-            pdfgen.fullPatternSvg = patterndata['full_pattern_svg']
-            pdfgen.fullPatternRect = fitz.Rect(0,0,patterndata['full_pattern_width'],patterndata['full_pattern_height'])
-            pdfgen.fullPatternSvgPerLayer = patterndata['layers_filenames']
-
-        with open(self.main_gui.temp_path + 'output.json') as jsonfile:
-            outdata = json.load(jsonfile)
-            pdfgen.generateMergeFilename = None if not self.generate_merged_pdf.GetValue() else outdata['output_merge_pdf_filename']
-            if index == 0 and pdfgen.generateMergeFilename is not None and os.path.isfile(pdfgen.generateMergeFilename):
-                os.remove(pdfgen.generateMergeFilename)
-            if outdata['out_%s'%pdfgen.fullPatternSvg] == 'User choice':
-                pdfgen.pdfOutFilename = outdata['output_unic_pdf_filename']
-            else:
-                pdfgen.pdfOutFilename = outdata['out_%s'%pdfgen.fullPatternSvg]
-
-        #for l in pdfgen.fullPatternSvgPerLayer.keys():
-        genFiles = pdfgen.run()
+        pdfgenA4 = TrademarkPDFGenerator() if self.use_trademark_canvas.GetValue() else CustoPDFGenerator()
+        pdfgenA4.generateA4 = self.generate_a4_checked
+        pdfgenA4.canvasFile = self.main_gui.gui_trademark.temp_canvas_pdf if self.use_trademark_canvas.GetValue() else self.main_gui.gui_custo.temp_canvas_pdf
+        pdfgenA4.generateSheetTrimming = CanvasOnSheet.CENTERED if self.generate_sheet_trimming_toggle.GetValue() else CanvasOnSheet.PIRATES
+        pdfgenA4.generateScanningOrder = PagesOrdering.LEFTRIGHT if self.generate_scanning_order_toggle.GetValue() else PagesOrdering.TOPDOWN
+        pdfgenA4.generatePagesOrientation = PagesOrientation.LANDSCAPE if self.get_landscape_or_portrait() else PagesOrientation.PORTRAIT
+        pdfgenA4.generateMaskingTapeTxt = TapeMarks.fromStr(self.main_gui.gui_custo.generate_A4['maskingtap_mark_txt'].GetStringSelection())
+        pdfgenA4.generateMaskingTapeColor = list(self.main_gui.gui_custo.generate_A4['maskingtap_mark_color'].GetColour())
+        pdfgenA4.pageNumberTxt = PagesNumbering.fromStr(self.pagenumber_txt.GetStringSelection())
+        pdfgenA4.pageNumberColor = list(self.pagenumber_color.GetColour())
+        pdfgenA4.pageNumberSize = self.pagenumber_size.GetValue()
+        pdfgenA4.pageNumberOpacity = self.pagenumber_opacity.GetValue()
+        pdfgenA4.pageA4Basename = alljsondico['SVG%s'%index]['PageA4Basename']
         
-        for f in genFiles:
-            doc = fitz.open(f)  
-            page0 = doc.load_page(0)
-            widget = fitz.Widget()
-            widget.rect = page0.rect
-            widget.field_type = fitz.PDF_WIDGET_TYPE_BUTTON 
-            widget.field_type_string = "Button"
-            widget.script = 'app.alert("clicked")'
-            widget.script = "var annt = this.getAnnots(); \n annt.forEach(function (item, index) { \n try{ \n var span = item.richContents; \n span.forEach(function (it, dx) {it.fontWeight = 800;}) \n item.richContents = span; \n}\n catch(err){} \n }); \n app.alert('Done');"
-            widget.script = "var annt = this; \n app.alert(annt); \n app.alert(unescape(macAddress));"
-            '''
-            var annt = this.getAnnots(); 
-            annt.forEach(function (item, index) { 
-                try{ 
-                    var span = item.richContents; 
-                    span.forEach(function (it, dx) {it.fontWeight = 800;}) 
-                    item.richContents = span; 
-                }
-                catch(err){} 
-            }); 
-            app.alert('Done');"
-            '''
-            widget.field_type = fitz.PDF_WIDGET_TYPE_TEXT
-            widget.field_name = "copyright"
-            widget.fill_color = (0,0,0)
-            widget.text_color = (1,1,1)
-            page0.addWidget(widget)
-            doc.saveIncr()
-            doc.close()
+        for pdfgen in [pdfgenA0,pdfgenA4]:
+            pdfgen.generateCommun.generateHiddenLayers = self.generate_hidden_layers.GetValue()
+            pdfgen.generateCommun.watermark = self.generate_watermarking
+            pdfgen.generateCommun.watermarkOpacity = self.pagenumber_opacity.GetValue()
+            pdfgen.generateCommun.macadress = self.main_gui.macadress
+            curjsondico = alljsondico['SVG%s'%index]
+            pdfgen.generateCommun.fullPatternSvg = curjsondico['SVGraw']
+            pdfgen.generateCommun.fullPatternSvgCSSFlatten = curjsondico['SVGflatten']
+            pdfgen.generateCommun.fullPatternSvgPerLayer = curjsondico['SVGLayers']
+            pdfgen.generateCommun.fullPatternRect = fitz.Rect(0,0,pdfgen.generateCommun.fullPatternSvgPerLayer['FullSizeWidth'],pdfgen.generateCommun.fullPatternSvgPerLayer['FullSizeHeight'])
+            pdfgen.generateCommun.pdfOutFilename = curjsondico['PDFout']
+            pdfgen.generateCommun.generateMergeFilename = None if not self.generate_merged_pdf.GetValue() else alljsondico['PDFmergedout']
+            if index == 0 and pdfgen.generateCommun.generateMergeFilename is not None and os.path.isfile(pdfgen.generateCommun.generateMergeFilename):
+                os.remove(pdfgen.generateCommun.generateMergeFilename)
+
+        try:     
+            pdfOutFilenameA0 = pdfgenA0.generateCommun.pdfOutFilename.replace('.pdf', '.A0.pdf')
+            pdfgenA0.runA0(pdfOutFilenameA0)        
+        except Exception as e: print('Except : run_layer_filter run A0', e)
+
+        try:     
+            pdfOutFilenameA4 = pdfgenA4.generateCommun.pdfOutFilename.replace('.pdf', '.A4.pdf')
+            pdfgenA4.runA4(pdfOutFilenameA4)        
+        except Exception as e: print('Except : run_layer_filter run A4', e)
             
     def load_svg_file(self,inputfilenamelist):
-        self.all_insvg_json = list()
-        for f in inputfilenamelist: 
-            try:
-                # open the svg
-                print('Open and parse layers of %s'%f)
-                self.algo_from_1svg_to_npdf.set_SVG_in(f)
-                self.all_insvg_json.append(self.algo_from_1svg_to_npdf.run())
-            except IOError:
-                wx.LogError('Cannot load file' + f)
-                
-        self.output_is_selected = InOutSelection.NONE
+        if len(inputfilenamelist) == 0: return 
         
-        autogenpath = '%s/AutoGenPDF/'%os.path.dirname(inputfilenamelist[0])
-        if not os.path.exists(autogenpath): os.makedirs(autogenpath)
+        try:
+            self.generation_algo_input.load_input_filename_list(inputfilenamelist)
+        except Exception as e:
+            print('Something went wrong in load_svg_file')
+            print('Exception:', e)
 
-        jsondata = dict()
-        jsondata['output_merge_pdf_filename'] = '%smerged.pdf'%autogenpath
-        
         self.input_fname_display.SetLabel(' '.join(inputfilenamelist))
         if len(inputfilenamelist) == 1:
             self.output_fname_display.SetLabel(label='Select the output PDF filename')
             self.out_doc_btn.Enable(True)
-            self.input_is_selected = InOutSelection.ONE_SVG
-            jsondata['out_%s'%inputfilenamelist[0]] = 'User choice'
         else:
             self.output_fname_display.SetLabel(label='PDF filename automatically build (see AutoGenPDF directory)')
             self.out_doc_btn.Enable(False)
-            self.input_is_selected = InOutSelection.SEVERAL_SVG                           
-            for f in inputfilenamelist:
-                jsondata['out_%s'%f] = '%s%s'%(autogenpath, os.path.basename(f).replace('.svg','.pdf'))
-
-        with open(self.main_gui.temp_path + 'output.json', 'w') as outfile:
-            json.dump(jsondata, outfile, indent=4, sort_keys=True)        
 
     def on_output_pdf(self, event):
         with wx.FileDialog(self, 'Save output as', defaultDir=self.main_gui.working_dir,
@@ -440,13 +382,24 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
                             
     def load_output_pdf_file(self,outputfilename):
         self.output_fname_display.SetLabel(outputfilename)
-        self.output_is_selected = InOutSelection.ONE_SVG
-        with open(self.main_gui.temp_path + 'output.json') as jsonfile:
-            jsondata = json.load(jsonfile)
+        self.generation_algo_output.output_is_selected = OutputSelection.ONE_SVG
 
-        jsondata['output_unic_pdf_filename'] = outputfilename
-        with open(self.main_gui.temp_path + 'output.json', 'w') as outfile:
-            json.dump(jsondata, outfile, indent=4, sort_keys=True)    
+        with open(self.generation_algo_input.algo_Nsvg_as_1jsonfile) as jsonfile:
+            jsondata = json.load(jsonfile)
+        jsondata['SVG0']['PDFout'] = outputfilename
+        with open(self.generation_algo_input.algo_Nsvg_as_1jsonfile, 'w') as jsonfile:
+            json.dump(jsondata, jsonfile, indent=4, sort_keys=False)        
             
+    def run(self):
+        #try:
+        with open(self.generation_algo_input.algo_Nsvg_as_1jsonfile) as jsonfile:
+            jsondata = json.load(jsonfile)           
+            for ji,j in enumerate(jsondata):
+                if j.startswith('SVG'):
+                    self.run_layer_filter(jsondata, ji)            
+        #except Exception as e:
+        #    print('Something went wrong in on_go_pressed')
+        #    print('Exception:', e)
+        
 
 

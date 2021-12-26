@@ -14,16 +14,9 @@ import wx.lib.buttons as buts
 import wx.svg
 import fitz
 import json
+from ressourcespath import resource_path
 
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
 
-    return os.path.join(base_path, relative_path)
 
 class CustoCanvasTab(scrolled.ScrolledPanel):
     def __init__(self,parent,main_gui):
@@ -85,7 +78,8 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         boxorientationsizer.Add(self.generate_A4['landscape_or_portrait_toggle'], flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, border=10)
         self.generate_A4['percent_slider'] = wx.Slider(self, value = 80, minValue = 70, maxValue = 100, size=(180,20), style = wx.SL_HORIZONTAL|wx.SL_VALUE_LABEL|wx.SL_TICKS|wx.SL_TOP)
         self.generate_A4['percent_slider'].SetTickFreq(5)
-        self.generate_A4['percent_slider'].Bind(wx.EVT_SLIDER, self.auto_canvas_construction)
+        self.generate_A4['percent_slider'].Bind(wx.EVT_COMMAND_SCROLL_THUMBRELEASE, self.auto_canvas_construction)
+        self.generate_A4['percent_slider'].Bind(wx.EVT_SCROLL_THUMBRELEASE, self.auto_canvas_construction)
         self.generate_A4['percent_slider'].SetValue(80)
         boxorientationsizer.Add(self.generate_A4['percent_slider'], flag=wx.EXPAND|wx.ALL, border=10)
         boxorientationsizer.InsertSpacer(2,15)
@@ -120,14 +114,14 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         self.generate_A4['assembly_mark_size'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
 
         self.maskingtape_txt_mode = ['No', 'LxCy', 'A-A']     
-        self.generate_maskingtape_txt = wx.RadioBox(self, label = 'Masking tape text', choices = self.maskingtape_txt_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
-        self.generate_maskingtape_txt.Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
+        self.generate_A4['maskingtap_mark_txt'] = wx.RadioBox(self, label = 'Masking tape text', choices = self.maskingtape_txt_mode, majorDimension = 3, style = wx.RA_SPECIFY_ROWS)
+        self.generate_A4['maskingtap_mark_txt'].Bind(wx.EVT_RADIOBOX,self.auto_canvas_construction) 
         boxmaskingtapetxtcolor = wx.StaticBox(self,label='Text color')
         boxmaskingtapetxtcolorsizer = wx.StaticBoxSizer(boxmaskingtapetxtcolor, wx.VERTICAL)
-        self.generate_maskingtape_txt_color = wx.ColourPickerCtrl(self)
-        self.generate_maskingtape_txt_color.SetColour('blue')
-        self.generate_maskingtape_txt_color.Bind(wx.EVT_COLOURPICKER_CHANGED,self.auto_canvas_construction) 
-        boxmaskingtapetxtcolorsizer.Add(self.generate_maskingtape_txt_color, flag=wx.ALL, border=10)        
+        self.generate_A4['maskingtap_mark_color'] = wx.ColourPickerCtrl(self)
+        self.generate_A4['maskingtap_mark_color'].SetColour('blue')
+        self.generate_A4['maskingtap_mark_color'].Bind(wx.EVT_COLOURPICKER_CHANGED,self.auto_canvas_construction) 
+        boxmaskingtapetxtcolorsizer.Add(self.generate_A4['maskingtap_mark_color'], flag=wx.ALL, border=10)        
 
         newline.AddMany([(self.generate_A4['corner_mark_symbol'], 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (boxcornermarkcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND), 
@@ -135,7 +129,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                          (self.generate_A4['assembly_mark_symbol'], 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (boxassemblymarkcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (self.generate_A4['assembly_mark_size'], 1, wx.ALIGN_TOP|wx.EXPAND), 
-                         (self.generate_maskingtape_txt, 1, wx.ALIGN_TOP|wx.EXPAND), 
+                         (self.generate_A4['maskingtap_mark_txt'], 1, wx.ALIGN_TOP|wx.EXPAND), 
                          (boxmaskingtapetxtcolorsizer, 1, wx.ALIGN_TOP|wx.EXPAND)])
                          
         left_sizer.Add(newline, flag=wx.EXPAND)
@@ -150,7 +144,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         self.auto_canvas_construction(event=None)
 
     def on_load_custo_pressed(self,event):
-        with wx.FileDialog(self, _('Load customization'), defaultDir=os.getcwd(),
+        with wx.FileDialog(self, 'Load customization', defaultDir=os.getcwd(),
                         wildcard='Custo files (*.custo)|*.custo',
                         style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL: return
@@ -190,7 +184,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                 self.auto_canvas_construction(event=None)
                     
     def on_save_custo_pressed(self,event):
-        with wx.FileDialog(self, _('Save customization as'), defaultDir=os.getcwd(),
+        with wx.FileDialog(self, 'Save customization as', defaultDir=os.getcwd(),
                         wildcard='Custo files (*.custo)|*.custo',
                         style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
@@ -208,7 +202,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                 else: print('Unknow instance')
                 
             with open(custofilename, 'w') as outfile:
-                json.dump(data, outfile, indent=4, sort_keys=True)
+                json.dump(data, outfile, indent=4, sort_keys=False)
                   
     def on_paint(self,event):
         dc = wx.PaintDC(self.preview_image)
@@ -216,7 +210,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         greycond = not self.preview_image.IsEnabled() or not os.path.isfile(self.temp_canvas_svg)
         dc.SetBackground(wx.Brush('grey' if greycond else 'white'))
         dc.Clear()
-        svg = wx.svg.SVGimage.CreateFromFile("nocanvas.svg" if greycond else self.temp_canvas_svg)
+        svg = wx.svg.SVGimage.CreateFromFile(resource_path("nocanvas.svg") if greycond else self.temp_canvas_svg)
         dcdim = min(self.preview_image.Size.width, self.preview_image.Size.height)
         imgdim = max(svg.width, svg.height)
         scale = dcdim / imgdim

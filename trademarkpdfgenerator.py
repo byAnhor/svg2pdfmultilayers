@@ -9,22 +9,28 @@
 
 import fitz
 import string
-from pdfgenerator import PDFGenerator, CanvasOnSheet, TapeMarks, Areas
+from pdfgeneratora4 import PDFGeneratorA4
+from enums import CanvasOnSheet, TapeMarks, Areas
 
-class TrademarkPDFGenerator(PDFGenerator):
-    def __init__(self, maingui):
+class TrademarkPDFGenerator(PDFGeneratorA4):
+    def __init__(self):
         super(TrademarkPDFGenerator, self).__init__()
-        self.maingui = maingui
+        self.canvasFile = None
+        self._freeze()
         
-    def getCanvasFile(self):
-        return self.maingui.gui_trademark.temp_canvas_pdf
+    @property
+    def canvasFile(self): return self.__canvasFile
+    @canvasFile.setter
+    def canvasFile(self, v):
+        assert v is None or isinstance(v, str), "assert false canvasFile"
+        self.__canvasFile = v
 
     def generateCanvas(self, doc):
         print('Generate the canvas on each page = central panel + (right/left/down/up) if existing + LxCy textbox')
         for h,w in self.orderedPageList:
             idwh = 'L%sC%s'%(h,w)
             pagei = doc.load_page(self.pageNumDico[idwh])
-            tempsvg = fitz.open(self.getCanvasFile())
+            tempsvg = fitz.open(self.canvasFile)
             pdfbytes = tempsvg.convert_to_pdf()
             tempsvg.close()
             tempsvg = fitz.open("pdf", pdfbytes) 

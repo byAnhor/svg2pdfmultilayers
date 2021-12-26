@@ -9,22 +9,28 @@
 
 import fitz
 import string
-from pdfgenerator import PDFGenerator, CanvasOnSheet, TapeMarks, Areas
+from pdfgeneratora4 import PDFGeneratorA4
+from enums import CanvasOnSheet, TapeMarks, Areas
 
-class CustoPDFGenerator(PDFGenerator):
-    def __init__(self, maingui):
+class CustoPDFGenerator(PDFGeneratorA4):
+    def __init__(self):
         super(CustoPDFGenerator, self).__init__()
-        self.maingui = maingui
+        self.canvasFile = None
+        self._freeze()
        
-    def getCanvasFile(self):
-        return self.maingui.gui_custo.temp_canvas_pdf
+    @property
+    def canvasFile(self): return self.__canvasFile
+    @canvasFile.setter
+    def canvasFile(self, v):
+        assert v is None or isinstance(v, str), "assert false canvasFile"
+        self.__canvasFile = v
 
     def generateCanvas(self, doc):
         print('Generate the canvas on each page = central panel + (right/left/down/up) if existing + LxCy textbox')
         for h,w in self.orderedPageList:
             idwh = 'L%sC%s'%(h,w)
             pagei = doc.load_page(self.pageNumDico[idwh])
-            tempsvg = fitz.open(self.getCanvasFile())
+            tempsvg = fitz.open(self.canvasFile)
             pdfbytes = tempsvg.convert_to_pdf()
             tempsvg.close()
             tempsvg = fitz.open("pdf", pdfbytes) 
@@ -99,10 +105,12 @@ class CustoPDFGenerator(PDFGenerator):
         #shape.finish(fill = self.markerfillshape, color = self.markercolorshape, fill_opacity=1.0)
         #shape.commit()
 
+        mc = tuple(round(ti/255.0,2) for ti in self.maingui.gui_custo.generate_A4['maskingtap_mark_color'].GetColour())
+
         shape = pagei.new_shape() 
         rup = fitz.Rect(CenterForCanvasXmin, CenterForCanvasYmax, CenterForCanvasXmax, CenterForCanvasYmax+20)
         shape.insert_textbox(rup, txt['U'], fontname = 'courier-bold', fontsize = 14, 
-                             color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In)
+                             color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In)
         shape.commit()
         #####
         if cond:
@@ -113,7 +121,7 @@ class CustoPDFGenerator(PDFGenerator):
 
             rupup = fitz.Rect(CenterForCanvasXmin, CenterForCanvasYmax-20, CenterForCanvasXmax, CenterForCanvasYmax)
             shape.insert_textbox(rupup, txt['UU'], fontname = 'courier-bold', fontsize = 14, 
-                                 color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out)
+                                 color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out)
             shape.commit()
 
 
@@ -127,10 +135,12 @@ class CustoPDFGenerator(PDFGenerator):
         #shape.finish(fill = self.markerfillshape, color = self.markercolorshape, fill_opacity=1.0)
         #shape.commit()
 
+        mc = tuple(round(ti/255.0,2) for ti in self.maingui.gui_custo.generate_A4['maskingtap_mark_color'].GetColour())
+
         shape = pagei.new_shape() 
         rdown = fitz.Rect(CenterForCanvasXmin, CenterForCanvasYmin-20, CenterForCanvasXmax, CenterForCanvasYmin)
         shape.insert_textbox(rdown, txt['D'], fontname = 'courier-bold', fontsize = 14, 
-                             color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In)
+                             color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In)
         shape.commit()
         #####
         if cond:
@@ -141,7 +151,7 @@ class CustoPDFGenerator(PDFGenerator):
 
             rdowndown = fitz.Rect(CenterForCanvasXmin, CenterForCanvasYmin, CenterForCanvasXmax, CenterForCanvasYmin+20)
             shape.insert_textbox(rdowndown, txt['DD'], fontname = 'courier-bold', fontsize = 14, 
-                                 color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out)
+                                 color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out)
             shape.commit()
 
 
@@ -154,11 +164,13 @@ class CustoPDFGenerator(PDFGenerator):
         #shape.draw_sector((CenterForCanvasXmin,CenterForCanvasYhalf), (CenterForCanvasXmin,CenterForCanvasYhalf+30), 180)
         #shape.finish(fill = self.markerfillshape, color = self.markercolorshape, fill_opacity=1.0)
         #shape.commit()
+
+        mc = tuple(round(ti/255.0,2) for ti in self.maingui.gui_custo.generate_A4['maskingtap_mark_color'].GetColour())
         
         shape = pagei.new_shape() 
         rleft = fitz.Rect(CenterForCanvasXmin, CenterForCanvasYmax, CenterForCanvasXmin+20, CenterForCanvasYmin)
         shape.insert_textbox(rleft, txt['L'], fontname = 'courier-bold', fontsize = 14, 
-                             color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In, rotate = 90)
+                             color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In, rotate = 90)
         shape.commit()
         
         #####
@@ -170,7 +182,7 @@ class CustoPDFGenerator(PDFGenerator):
             
             rleftleft = fitz.Rect(CenterForCanvasXmin-20, CenterForCanvasYmax, CenterForCanvasXmin, CenterForCanvasYmin)
             shape.insert_textbox(rleftleft, txt['LL'], fontname = 'courier-bold', fontsize = 14, 
-                                 color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out, rotate = 90)
+                                 color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out, rotate = 90)
             shape.commit()
 
     def rightmark(self, CenterForCanvas, pagei, txt, xrefOCGA4In , xrefOCGA4Out, cond):
@@ -179,6 +191,8 @@ class CustoPDFGenerator(PDFGenerator):
         CenterForCanvasXmax = CenterForCanvas.br.x
         CenterForCanvasYmin, CenterForCanvasYmax = CenterForCanvas.br.y, CenterForCanvas.tl.y
         
+        mc = tuple(round(ti/255.0,2) for ti in self.maingui.gui_custo.generate_A4['maskingtap_mark_color'].GetColour())
+
         #shape.draw_sector((CenterForCanvasXmax,CenterForCanvasYhalf), (CenterForCanvasXmax,CenterForCanvasYhalf-30), 180)
         #shape.finish(fill = self.markerfillshape, color = self.markercolorshape, fill_opacity=1.0)
         #shape.commit()
@@ -186,7 +200,7 @@ class CustoPDFGenerator(PDFGenerator):
         shape = pagei.new_shape() 
         rright = fitz.Rect(CenterForCanvasXmax-20, CenterForCanvasYmax, CenterForCanvasXmax, CenterForCanvasYmin)
         shape.insert_textbox(rright, txt['R'], fontname = 'courier-bold', fontsize = 14, 
-                             color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In, rotate = 90)
+                             color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4In, rotate = 90)
         shape.commit()
         
         #####
@@ -198,7 +212,7 @@ class CustoPDFGenerator(PDFGenerator):
             
             rrightright = fitz.Rect(CenterForCanvasXmax, CenterForCanvasYmax, CenterForCanvasXmax+20, CenterForCanvasYmin)
             shape.insert_textbox(rrightright, txt['RR'], fontname = 'courier-bold', fontsize = 14, 
-                                 color = self.markercolortxt, align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out, rotate = 90)
+                                 color = mc[:-1], align = fitz.TEXT_ALIGN_CENTER, oc=xrefOCGA4Out, rotate = 90)
             shape.commit()
         
         
