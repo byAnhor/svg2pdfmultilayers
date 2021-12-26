@@ -18,7 +18,7 @@ a = Analysis(['svg2pdfmultilayers.py'],
              cipher=block_cipher,
              noarchive=False)
              
-a.datas += [('icon.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\icon.ico','DATA')]
+a.datas += [('icon.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\icon.ico','DATA')]
 a.datas += [('openXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\openXS.ico','DATA')]
 a.datas += [('savepdfXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\savepdfXS.ico','DATA')]
 a.datas += [('topdown.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\topdown.png','DATA')]
