@@ -73,7 +73,8 @@ class IOTab(FrozenClass, scrolled.ScrolledPanel):
         self.boxA4 = wx.StaticBox(self,label='A4 PDF generation')
         boxA4sizer = wx.StaticBoxSizer(self.boxA4, wx.VERTICAL)
         self.generate_a4 = wx.CheckBox(self,label='Generate A4')
-        self.generate_a4.SetValue(1)
+        self.generate_a4.Enable(0)
+        self.generate_a4.SetValue(0)
         self.generate_a4.Bind(wx.EVT_CHECKBOX,self.on_generate_a0a4_checked)
         boxA4sizer.Add(self.generate_a4, flag=wx.ALL, border=10)
         
