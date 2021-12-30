@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(['svg2pdfmultilayers.py'],
-             pathex=['C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2'],
+             pathex=['C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers'],
              binaries=[],
              datas=[('*.py', 'sources')],
              hiddenimports=[],
@@ -18,19 +18,20 @@ a = Analysis(['svg2pdfmultilayers.py'],
              cipher=block_cipher,
              noarchive=False)
              
-a.datas += [('icon.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\icon.ico','DATA')]
-a.datas += [('openXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\openXS.ico','DATA')]
-a.datas += [('savepdfXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\savepdfXS.ico','DATA')]
-a.datas += [('topdown.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\topdown.png','DATA')]
-a.datas += [('leftright.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\leftright.png','DATA')]
-a.datas += [('portrait.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\portrait.png','DATA')]
-a.datas += [('landscape.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\landscape.png','DATA')]
-a.datas += [('custoload.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\custoload.ico','DATA')]
-a.datas += [('custosave.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\custosave.ico','DATA')]
-a.datas += [('topleft.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\topleft.png','DATA')]
-a.datas += [('center.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\center.png','DATA')]
-a.datas += [('nocanvas.svg','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\nocanvas.svg','DATA')]
-a.datas += [('impact.ttf','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers2\\ressources\\impact.ttf','DATA')]
+a.datas += [('icon.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\icon.ico','DATA')]
+a.datas += [('openXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\openXS.ico','DATA')]
+a.datas += [('savepdfXS.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\savepdfXS.ico','DATA')]
+a.datas += [('topdown.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\topdown.png','DATA')]
+a.datas += [('leftright.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\leftright.png','DATA')]
+a.datas += [('portrait.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\portrait.png','DATA')]
+a.datas += [('landscape.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\landscape.png','DATA')]
+a.datas += [('custoload.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\custoload.ico','DATA')]
+a.datas += [('custosave.ico','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\custosave.ico','DATA')]
+a.datas += [('topleft.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\topleft.png','DATA')]
+a.datas += [('center.png','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\center.png','DATA')]
+a.datas += [('nocanvas.svg','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\nocanvas.svg','DATA')]
+a.datas += [('impact.ttf','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\impact.ttf','DATA')]
+a.datas += [('btn_donate_SM.gif','C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\ressources\\btn_donate_SM.gif','DATA')]
              
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
