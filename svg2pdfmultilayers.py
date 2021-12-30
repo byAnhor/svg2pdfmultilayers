@@ -14,10 +14,15 @@ import sys
 import shutil
 import utils
 from frozenclass import FrozenClass
-from iotab import IOTab, InOutSelection
+from iotab import IOTab
+from generationalgoinput import InputSelection
+from generationalgooutput import OutputSelection
 from custocanvastab import CustoCanvasTab
 from trademarkcanvastab import TrademarkCanvasTab
+from ressourcespath import resource_path
 import re, uuid
+import webbrowser
+import wx.lib.buttons as buts
 
 try:
     import pyi_splash
@@ -49,7 +54,7 @@ class byAnhorGUI(FrozenClass, wx.Frame):
         self.manage_access_to_custo_or_trademark_canvas(False)
         
         if sys.platform == 'win32' or sys.platform == 'linux':
-            self.SetIcon(wx.Icon(utils.resource_path('icon.ico')))
+            self.SetIcon(wx.Icon(resource_path('icon.ico')))
        
         print('WARNING !!! Make sure to open an SVG file with dimensions in accordance with the content')
         print('Inkscape : Go to File -> Document Properties -> Custom Size -> Resize page to content')
@@ -84,16 +89,20 @@ class byAnhorGUI(FrozenClass, wx.Frame):
         twolinessizer.AddGrowableRow(1)
         pnl.SetSizer(twolinessizer)
 
-        twocolumnssizer = wx.FlexGridSizer(1,2,0,0)
-        # the go button and exit button
-        go_btn = wx.Button(pnl, label='Generate PDF')
+        twocolumnssizer = wx.FlexGridSizer(1,3,0,0)
+        # the go button and exit button and donate button
+        go_btn = buts.GenBitmapTextButton(pnl, bitmap=None, label='Generate PDF', size=(120,30))
         go_btn.SetFont(go_btn.GetFont().Bold())
         go_btn.Bind(wx.EVT_BUTTON,self.on_go_pressed)
         twocolumnssizer.Add(go_btn)
-        bye_btn = wx.Button(pnl, label='Exit !')
+        bye_btn = buts.GenBitmapTextButton(pnl, bitmap=None, label='Exit !', size=(120,30))
         bye_btn.SetFont(bye_btn.GetFont().Bold())
         bye_btn.Bind(wx.EVT_BUTTON,self.on_bye_pressed)
         twocolumnssizer.Add(bye_btn, flag = wx.LEFT, border = 20)
+        donate = buts.GenBitmapTextButton(pnl, -1, bitmap=wx.Bitmap(resource_path("btn_donate_SM.gif")), size=(120,30))
+        donate.Bind(wx.EVT_BUTTON,self.on_donate)
+        twocolumnssizer.Add(donate, flag = wx.LEFT, border = 20)
+        
         twolinessizer.Add(twocolumnssizer, flag = wx.EXPAND|wx.TOP|wx.LEFT, border = 20)
         
         # the log window and redirect console output
@@ -102,28 +111,26 @@ class byAnhorGUI(FrozenClass, wx.Frame):
         sys.stdout = log
         sys.stderr = log
         
+    def on_donate(self, event):
+        webbrowser.open('https://www.paypal.com/donate?business=V2YL9HEL2XHWQ&no_recurring=0&currency_code=EUR')
+
     def on_go_pressed(self,event):
-        if self.gui_io.input_is_selected is InOutSelection.NONE:
-            print(_('Please select INPUT svg file before'))
+        if self.gui_io.generation_algo_input.input_is_selected is InputSelection.NONE:
+            print('Please select INPUT svg file before')
             return 
-        if self.gui_io.input_is_selected is InOutSelection.ONE_SVG and self.gui_io.output_is_selected is InOutSelection.NONE:
-            print(_('Please select OUTPUT pdf file before'))
+        if self.gui_io.generation_algo_input.input_is_selected is InputSelection.ONE_SVG and \
+           self.gui_io.generation_algo_output.output_is_selected is OutputSelection.NONE:
+            print('Please select OUTPUT pdf file before')
             self.gui_io.on_output_pdf(event)
-            if self.gui_io.output_is_selected is InOutSelection.NONE:
+            if self.gui_io.generation_algo_output.output_is_selected is OutputSelection.NONE:
                 return
         if self.gui_io.use_trademark_canvas.GetValue() and self.gui_trademark.trademark_svg_canvas_filename is None:
-            print(_('Please select INPUT svg own canvas file before'))
+            print('Please select INPUT svg own canvas file before')
             return
-                       
-        try:            
-            for ji,j in enumerate(self.gui_io.all_insvg_json):
-                self.gui_io.run_layer_filter(j, ji)            
-        except Exception as e:
-            print('Something went wrong in on_go_pressed')
-            print('Exception:', e)
+        self.gui_io.run()         
 
     def on_bye_pressed(self,event):
-        print(_('BYE !!!!!!!!!!!!!!!!!'))
+        print('BYE !!!!!!!!!!!!!!!!!')
         try:
             shutil.rmtree(self.temp_path)
         except Exception as e:
