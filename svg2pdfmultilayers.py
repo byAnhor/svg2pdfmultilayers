@@ -51,6 +51,10 @@ class byAnhorGUI(FrozenClass, wx.Frame):
         if sys.platform == 'win32' or sys.platform == 'linux':
             self.SetIcon(wx.Icon(utils.resource_path('icon.ico')))
        
+        print('WARNING !!! Make sure to open an SVG file with dimensions in accordance with the content')
+        print('Inkscape : Go to File -> Document Properties -> Custom Size -> Resize page to content')
+        print('Are you OK with that ? So here we go !!!')
+
         if len(sys.argv) > 1: self.gui_io.load_svg_file(sys.argv[1])       
         if len(sys.argv) > 2: self.gui_io.load_output_pdf_file(sys.argv[2])
             
@@ -153,5 +157,14 @@ if __name__ == '__main__':
     if language_warning:
         print(language_warning)
 
+    if __debug__:
+        #frm.gui_io.load_svg_file(['C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\tests\\Pattern-Copyshop.svg'])
+        frm.gui_io.load_svg_file(['C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\tests\\Planches vierges.svg'])
+        
+        frm.gui_io.generate_a0.SetValue(0)
+        #frm.gui_io.load_output_pdf_file('C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\tests\\Pattern-Copyshop.pdf')
+        frm.gui_io.load_output_pdf_file('C:\\Users\\anita\\Documents\\GITHub\\svg2pdfmultilayers\\tests\\Planches vierges.pdf')
+        
+        
     frm.Show()
     app.MainLoop()
