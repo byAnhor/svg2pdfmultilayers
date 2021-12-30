@@ -7,15 +7,56 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 
+import os
 import sys
 import fitz
 import math
+import PyPDF2
 from abc import abstractmethod
 from frozenclass import FrozenClass
 from pdfgenerator import PDFGenerator
 from ressourcespath import resource_path
 from enums import CanvasOnSheet, TapeMarks, Areas, PagesOrdering, PagesOrientation, PagesNumbering
+from PyPDF2 import PdfFileReader, PdfFileMerger, PdfFileWriter
 
+class MyPdfFileWriter(PdfFileWriter):
+    def __init__(self):
+        super().__init__()
+        self.ocgsDico = dict()
+        
+    def myCloneDocumentFromReader(self, reader, after_page_append=None):
+        # Variables used for after cloning the root to improve pre- and post- cloning experience
+        # Clone the reader's root document
+        self._root_object = reader.trailer['/Root']
+        self._root = self._addObject(self._root_object)
+        # Sweep for all indirect references
+        externalReferenceMap = {}
+        self.stack = []
+        newRootRef = self._sweepIndirectReferences(externalReferenceMap, self._root)
+        ocProperties = self._root.getObject()["/OCProperties"]
+        ocgs = ocProperties['/OCGs']   
+        for ocg in ocgs:
+            self.ocgsDico[ocg.getObject()['/Name']] = str(ocg)
+        # Delete the stack to reset
+        del self.stack
+        #Clean-Up Time!!!
+        # Get the new root of the PDF
+        #realRoot = self.getObject(newRootRef)
+        # Get the new pages tree root and its ID Number
+        #tmpPages = realRoot[PyPDF2.generic.NameObject("/Pages")]
+        #print('tmpPages', tmpPages)
+        #newIdNumForPages = 1 + self._objects.index(tmpPages)
+        # Make an IndirectObject just for the new Pages
+        #self._pages = PyPDF2.generic.IndirectObject(newIdNumForPages, 0, self)
+        # Bump up the info's reference b/c the old page's tree was bumped off
+        #self._info = newInfoRef
+        #print('newInfoRef', newInfoRef, '=>', newInfoRef.getObject())
+
+    def myAddPage(self, page):
+        print('myAddPage', page)
+        print('myAddPage', page[PyPDF2.generic.NameObject("/Resources")])
+        self.addPage(page)            
+    
 def LINE():
     return sys._getframe(1).f_lineno
 
@@ -45,7 +86,6 @@ class PDFGeneratorA4(FrozenClass):
         self.canvasShowRectsDico = None
         self.patternShowRectsDico = None
         self.patternClipRectsDico = None
-        self.pageNumDico = None
 
     @property
     def fullPatternRect(self): return self.generateCommun.fullPatternRect
@@ -149,7 +189,7 @@ class PDFGeneratorA4(FrozenClass):
         self.__patternClipRectsDico = v
 
     @abstractmethod
-    def generateCanvas(self, doc):
+    def generateCanvas(self):
         pass
     @abstractmethod
     def getCanvasFile(self):
@@ -209,28 +249,31 @@ class PDFGeneratorA4(FrozenClass):
     
     def generateOneOCGperLayer(self, doc):
         xrefOCG = dict()                   
-        #print('Generate hidden layers', self.generateHiddenLayers)
-        for k in self.fullPatternSvgPerLayer['LayersFilenames'].keys(): 
+        for k in self.fullPatternSvgPerLayer['LayersFilenames']: 
             if self.generateHiddenLayers or self.fullPatternSvgPerLayer['LayersFilenames'][k]['display'] == 'display':
                 xrefOCG[k] = doc.add_ocg('%s'%k)
         return xrefOCG
 
     def generateOnePagePattern(self, idwh):
-        docOnePage = dict()
-        docOnePage[idwh] = fitz.open()
-        self.xrefOCGA4In = docOnePage[idwh].add_ocg('A4CanvasIn', on=True)
-        self.xrefOCGA4Out = docOnePage[idwh].add_ocg('A4CanvasOut')
-        docOnePage[idwh].set_ocmd(xref=0, ocgs=[self.xrefOCGA4In,self.xrefOCGA4Out], policy="AnyOn", ve=None)
-        self.xrefOCG = self.generateOneOCGperLayer(docOnePage[idwh]) 
-        onepage = docOnePage[idwh].new_page(-1)
+        docOnePage = fitz.open()
+        docOnePage.set_metadata({'title': os.path.basename(self.pageA4Basename) + '_%s.pdf'%idwh, 'producer': 'svg2pdfmultilayer byAnhor'})
+        onepage = docOnePage.new_page(-1)
         if self.generatePagesOrientation == PagesOrientation.LANDSCAPE:
             rotW = onepage.rect.width
             rotH = onepage.rect.height
-            docOnePage[idwh].delete_page(-1)
-            onepage = docOnePage[idwh].new_page(-1, width = rotH, height = rotW) 
+            docOnePage.delete_page(-1)
+            onepage = docOnePage.new_page(-1, width = rotH, height = rotW) 
         res = onepage.rect
-        docOnePage[idwh].save(self.pageA4Basename + '_%s.pdf'%idwh)
-        docOnePage[idwh].close()
+        docOnePage.save(self.pageA4Basename + '_%s.pdf'%idwh)
+        docOnePage.close()
+
+        with fitz.open(self.pageA4Basename + '_%s.pdf'%idwh) as docOnePage:
+            self.xrefOCGA4In = docOnePage.add_ocg('A4CanvasIn', on=True)
+            self.xrefOCGA4Out = docOnePage.add_ocg('A4CanvasOut')
+            docOnePage.set_ocmd(xref=0, ocgs=[self.xrefOCGA4In,self.xrefOCGA4Out], policy="AnyOn", ve=None)
+            self.xrefOCG = self.generateOneOCGperLayer(docOnePage) 
+            docOnePage.saveIncr()
+
         return res
 
     def getAreasCondition(self):
@@ -248,16 +291,6 @@ class PDFGeneratorA4(FrozenClass):
             res[idwh][Areas.DL] = res[idwh][Areas.D] and res[idwh][Areas.L]
             res[idwh][Areas.DR] = res[idwh][Areas.D] and res[idwh][Areas.R]
         return res
-
-    def generateWatermarkA4(self, doc):
-        print('Generate watermarking A4')
-        for hwi,hw in enumerate(self.orderedPageList):
-            h,w = hw
-            idwh = 'L%sC%s'%(h,w)
-            pagei = doc.load_page(self.pageNumDico[idwh]) 
-            self.generateCommun.generateWatermark(doc, pagei, self.canvasClipRectsDico[Areas.C], (self.deltaW,self.deltaH))
-        doc.saveIncr()
-        doc.close()     
     
     def buildRectDicos(self, a4rect, canvasrect):
         
@@ -271,9 +304,7 @@ class PDFGeneratorA4(FrozenClass):
             print('==> Margin around the active area (Pixel units 72 PPI) right = %s down = %s'%(deltaW, deltaH))
         self.deltaW, self.deltaH = deltaW, deltaH
         
-        print(LINE())
         self.canvasClipRectsDico = dict()
-        print(LINE())
         for e in Areas: self.canvasClipRectsDico[e] = None
         self.canvasClipRectsDico[Areas.C] = canvasrect
         self.canvasClipRectsDico[Areas.R] = fitz.Rect(0, 0, deltaW, canvasrect.height)
@@ -289,11 +320,10 @@ class PDFGeneratorA4(FrozenClass):
         self.canvasShowRectsDico = dict()
         self.patternShowRectsDico = dict()
         self.patternClipRectsDico = dict()
-        self.pageNumDico = dict()
+
         for h,w in self.orderedPageList:
             idwh = 'L%sC%s'%(h,w)
-            self.pageNumDico[idwh] = len(self.pageNumDico.keys())
-    
+
             condL = w > 0 and self.generateSheetTrimming == CanvasOnSheet.CENTERED
             condR = w < self.needSheetW - 1
             condT = h > 0 and self.generateSheetTrimming == CanvasOnSheet.CENTERED
@@ -376,35 +406,38 @@ class PDFGeneratorA4(FrozenClass):
     
     def getShownLayersDocDico(self):
         res = dict()
-        for k in self.fullPatternSvgPerLayer['LayersFilenames'].keys(): 
+        for k in self.fullPatternSvgPerLayer['LayersFilenames']: 
             if self.generateHiddenLayers or self.fullPatternSvgPerLayer['LayersFilenames'][k]['display'] == 'display':
-                curfilename = self.fullPatternSvgPerLayer[k].replace('.svg', '.fitz.pdf')
-                tempsvg = fitz.open(self.tempPath + curfilename)
+                res[k] = dict()
+                res[k]['FitzPdfFilename'] = self.fullPatternSvgPerLayer['LayersFilenames'][k]['fitzpdf']
+                tempsvg = fitz.open(res[k]['FitzPdfFilename'])
                 pdfbytes = tempsvg.convert_to_pdf()
                 tempsvg.close()
-                res[k] = fitz.open("pdf", pdfbytes) 
+                res[k]['FitzDocument'] = fitz.open("pdf", pdfbytes) 
         return res
 
-    def generatePattern(self, idwh):
-        
-        shownLayersDocDico = self.getShownLayersDocDico()
-        areasCondition = self.getAreasCondition()
-        
-        curPage = self.pageNumDico[idwh] 
-        pagei = doc.load_page(curPage)
-        for area in Areas:
-            if areasCondition[idwh][area]:
-                self.generateCurrentPageCurrentAreaShownLayers(pagei, idwh, area, shownLayersDocDico)
-                doc.saveIncr()
-                    
-        for k in shownLayersDocDico: 
-            shownLayersDocDico[k].close()
- 
-    def generatePageNumber(self, doc):
-        print('Generate page number')
-                
+    def generatePattern(self, shownLayersDocDico, areasCondition):
+        print('Generate pattern')
+        for h,w in self.orderedPageList:
+            idwh = 'L%sC%s'%(h,w)
+    
+            b = open(self.pageA4Basename + '_%s.pdf'%idwh, "rb").read()
+            with fitz.open("pdf", b) as doci:
+                page0 = doci.load_page(0)
+                for k in shownLayersDocDico: 
+                    for area in Areas:
+                        if areasCondition[idwh][area]:
+                            page0.show_pdf_page(self.patternShowRectsDico[idwh][area], shownLayersDocDico[k]['FitzDocument'], 0, oc=self.xrefOCG[k], clip=self.patternClipRectsDico[idwh][area])
+                            shape = page0.new_shape()
+                            shape.draw_rect(self.canvasShowRectsDico[idwh][area])
+                            shape.finish(fill = (0.95,0.95,0.95), fill_opacity=0.1 if area == Areas.C else 0.3)
+                            shape.commit()
+                            doci.save(self.pageA4Basename + '_%s.pdf'%idwh)
+
+    def generatePageNumber(self):
         if self.pageNumberTxt == PagesNumbering.NO: return
-        
+        print('Generate page number')
+
         myfont = fitz.Font(fontname='impact', fontfile=resource_path('impact.ttf'), fontbuffer=None, script=0, language=None, 
                            ordering=-1, is_bold=0, is_italic=0, is_serif=0)
              
@@ -412,30 +445,42 @@ class PDFGeneratorA4(FrozenClass):
             h,w = hw
             idwh = 'L%sC%s'%(h,w)
             canvasrect = self.canvasClipRectsDico[Areas.C]
-            pagei = doc.load_page(self.pageNumDico[idwh])
-            pgtxt = idwh if self.pageNumberTxt == PagesNumbering.LXCY else '%s'%hwi
-            pgtxtwidth = myfont.text_length(pgtxt, int(self.pageNumberSize))
-            pgtxtHmin = int(self.pageNumberSize) * min([myfont.glyph_bbox(ord(x)).y0 for x in pgtxt])
-            pgtxtHmax = int(self.pageNumberSize) * max([myfont.glyph_bbox(ord(x)).y1 for x in pgtxt])
-            pgtxtheight = pgtxtHmax-pgtxtHmin
-            rgb = [x/255.0 for x in self.pageNumberColor[:-1]]
             
-            x = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES else self.deltaW) + canvasrect.width/2.0 - pgtxtwidth/2.0 
-            y = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES else self.deltaH) + canvasrect.height/2.0 - pgtxtheight/2.0 
+            b = open(self.pageA4Basename + '_%s.pdf'%idwh, "rb").read()
+            with fitz.open("pdf", b) as doci:
+                pagei = doci.load_page(0)
+                pgtxt = idwh if self.pageNumberTxt == PagesNumbering.LXCY else '%s'%hwi
+                pgtxtwidth = myfont.text_length(pgtxt, int(self.pageNumberSize))
+                pgtxtHmin = int(self.pageNumberSize) * min([myfont.glyph_bbox(ord(x)).y0 for x in pgtxt])
+                pgtxtHmax = int(self.pageNumberSize) * max([myfont.glyph_bbox(ord(x)).y1 for x in pgtxt])
+                pgtxtheight = pgtxtHmax-pgtxtHmin
+                rgb = [x/255.0 for x in self.pageNumberColor[:-1]]
+                
+                x = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES else self.deltaW) + canvasrect.width/2.0 - pgtxtwidth/2.0 
+                y = (0 if self.generateSheetTrimming == CanvasOnSheet.PIRATES else self.deltaH) + canvasrect.height/2.0 - pgtxtheight/2.0 
+                
+                '''pivot = fitz.Point(rect.x0, rect.y0 + rect.height/2) #middle of left side
+                matrix = fitz.Matrix(textwidth/rect.width, 1.0)
+                r2 = page.insert_textbox(token.rect, f'{word}', color=(1,0,0), morph=(pivot, matrix))'''
+                pagei.insert_textbox(fitz.Rect(x,y,x+pgtxtwidth,y+pgtxtheight), pgtxt, fontsize=int(self.pageNumberSize), 
+                                    fontname='impact', fontfile=resource_path('impact.ttf'), color=rgb, 
+                                    fill=rgb, render_mode=0, border_width=1, encoding=fitz.TEXT_ENCODING_LATIN, 
+                                    expandtabs=8, align=fitz.TEXT_ALIGN_LEFT, rotate=0, morph=None, 
+                                    stroke_opacity=1, fill_opacity=int(self.pageNumberOpacity)/100.0, oc=self.xrefOCGA4In, overlay=True)
+    
+                doci.save(self.pageA4Basename + '_%s.pdf'%idwh)
             
-            '''pivot = fitz.Point(rect.x0, rect.y0 + rect.height/2) #middle of left side
-            matrix = fitz.Matrix(textwidth/rect.width, 1.0)
-            r2 = page.insert_textbox(token.rect, f'{word}', color=(1,0,0), morph=(pivot, matrix))'''
-            print(canvasrect, fitz.Rect(200,200,200+pgtxtwidth,200+pgtxtheight))
-            pagei.insert_textbox(fitz.Rect(x,y,x+pgtxtwidth,y+pgtxtheight), pgtxt, fontsize=int(self.pageNumberSize), 
-                                fontname='impact', fontfile=resource_path('impact.ttf'), color=rgb, 
-                                fill=rgb, render_mode=0, border_width=1, encoding=fitz.TEXT_ENCODING_LATIN, 
-                                expandtabs=8, align=fitz.TEXT_ALIGN_LEFT, rotate=0, morph=None, 
-                                stroke_opacity=1, fill_opacity=int(self.pageNumberOpacity)/100.0, oc=self.xrefOCGA4In, overlay=True)
+    def generateWatermarkA4(self):
+        print('Generate watermarking A4')
+        for hwi,hw in enumerate(self.orderedPageList):
+            h,w = hw
+            idwh = 'L%sC%s'%(h,w)
+            b = open(self.pageA4Basename + '_%s.pdf'%idwh, "rb").read()
+            with fitz.open("pdf", b) as doci:
+                pagei = doci.load_page(0)
+                self.generateCommun.generateWatermark(doci, pagei, self.canvasClipRectsDico[Areas.C], (self.deltaW,self.deltaH) if self.generateSheetTrimming == CanvasOnSheet.CENTERED else None)
+                doci.save(self.pageA4Basename + '_%s.pdf'%idwh)
 
-        doc.saveIncr()
-        doc.close()            	
-            
     def runA4(self, outputfilenameA4):
         
         print('-------------- G E N E R A T E --- A 4 -----------------\n', outputfilenameA4 if self.generateA4 else 'N/A')
@@ -458,55 +503,76 @@ class PDFGeneratorA4(FrozenClass):
                         print('==> Need %s (%sx%s) sheets'%(self.needSheetW*self.needSheetH, self.needSheetW, self.needSheetH))
                         self.buildRectDicos(a4rect, canvasrect)
             except Exception as e:
-                print('Something went wrong during blank page generation')
+                print('Something went wrong during blank pages generation')
                 print('Exception:', e)
-
                                 
             try:
-                self.generatePattern(idwh)
+                shownLayersDocDico = self.getShownLayersDocDico()
+                areasCondition = self.getAreasCondition()
+                self.generatePattern(shownLayersDocDico, areasCondition)
             except Exception as e:
                 print('Something went wrong during pattern generation')
                 print('Exception:', e)
 
-            '''doc = fitz.open(outputfilenameA4) 
             try:
-                self.generateCanvas(doc)
+                self.generateCanvas()
             except Exception as e:
-                doc.close()
                 print('Something went wrong during canvas generation')
                 print('Exception:', e)
             
-            doc = fitz.open(outputfilenameA4) 
             try:
-                self.generatePageNumber(doc)
+                self.generatePageNumber()
             except Exception as e:
-                doc.close()
                 print('Something went wrong during page number generation')
                 print('Exception:', e)
 
-            doc = fitz.open(outputfilenameA4) 
             try:
-                self.generateWatermarkA4(doc)
+                self.generateWatermarkA4()
             except Exception as e:
-                doc.close()
                 print('Something went wrong during watermarking generation')
+                print('Exception:', e)
+                
+            try:
+                print('Merge A4')
+                
+                
+                pdfMerger = PdfFileMerger()
+                with open(outputfilenameA4, 'wb') as pdfWB:
+                    for hw in self.orderedPageList:
+                        h,w = hw
+                        idwh = 'L%sC%s'%(h,w)
+                        with open(self.pageA4Basename + '_%s.pdf'%idwh, 'rb') as pdfRB:
+                            if h==0 and w==0:
+                                pdfReader = PdfFileReader(pdfRB)
+                                pdfMerger.output.cloneReaderDocumentRoot(pdfReader)
+                                print(pdfReader.trailer["/Root"].getObject().keys())
+                                print(pdfReader.trailer["/Root"].getObject()["/OCProperties"])
+                                print(pdfMerger.output._root_object)
+                            pdfMerger.append(self.pageA4Basename + '_%s.pdf'%idwh)
+                    pdfMerger.write(pdfWB)   
+                    print(pdfMerger.output._root.getObject().keys())
+                    #ocProperties = self._root.getObject()["/OCProperties"]
+                    #ocgs = ocProperties['/OCGs']   
+
+
+            except Exception as e:
+                print('Something went wrong during A4 pages merging')
                 print('Exception:', e)
 
             try:
-                print('self.generateMergeFilename', self.generateMergeFilename)
-                if self.generateMergeFilename is not None:
-                    if not os.path.isfile(self.generateMergeFilename):
+                if self.generateCommun.generateMergeFilename is not None:
+                    if not os.path.isfile(self.generateCommun.generateMergeFilename):
                         mergedoc = fitz.open()
                         doc = fitz.open(outputfilenameA4)
                         mergedoc.insertPDF(doc)
                         doc.close()
-                        mergedoc.save(self.generateMergeFilename)
+                        mergedoc.save(self.generateCommun.generateMergeFilename)
                         mergedoc.close()
                     else:
                         ready = False
                         while not ready:
                             try:
-                                mergedoc = fitz.open(self.generateMergeFilename) 
+                                mergedoc = fitz.open(self.generateCommun.generateMergeFilename) 
                                 ready = True
                             except: pass
                         doc = fitz.open(outputfilenameA4)
@@ -514,7 +580,7 @@ class PDFGeneratorA4(FrozenClass):
                         doc.close()
                         mergedoc.saveIncr()
                         mergedoc.close()
-            except: print('runA4 merge issue %s'%self.generateMergeFilename)'''
+            except: print('runA4 merge issue %s'%self.generateCommun.generateMergeFilename)
             
 if __name__ == '__main__':
     pass
