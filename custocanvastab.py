@@ -17,6 +17,7 @@ import json
 from ressourcespath import resource_path
 
 
+
 class CustoCanvasTab(scrolled.ScrolledPanel):
     def __init__(self,parent,main_gui):
         super(CustoCanvasTab, self).__init__(parent)
@@ -77,7 +78,8 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         boxorientationsizer.Add(self.generate_A4['landscape_or_portrait_toggle'], flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, border=10)
         self.generate_A4['percent_slider'] = wx.Slider(self, value = 80, minValue = 70, maxValue = 100, size=(180,20), style = wx.SL_HORIZONTAL|wx.SL_VALUE_LABEL|wx.SL_TICKS|wx.SL_TOP)
         self.generate_A4['percent_slider'].SetTickFreq(5)
-        self.generate_A4['percent_slider'].Bind(wx.EVT_SLIDER, self.auto_canvas_construction)
+        self.generate_A4['percent_slider'].Bind(wx.EVT_COMMAND_SCROLL_THUMBRELEASE, self.auto_canvas_construction)
+        self.generate_A4['percent_slider'].Bind(wx.EVT_SCROLL_THUMBRELEASE, self.auto_canvas_construction)
         self.generate_A4['percent_slider'].SetValue(80)
         boxorientationsizer.Add(self.generate_A4['percent_slider'], flag=wx.EXPAND|wx.ALL, border=10)
         boxorientationsizer.InsertSpacer(2,15)
@@ -142,7 +144,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         self.auto_canvas_construction(event=None)
 
     def on_load_custo_pressed(self,event):
-        with wx.FileDialog(self, _('Load customization'), defaultDir=os.getcwd(),
+        with wx.FileDialog(self, 'Load customization', defaultDir=os.getcwd(),
                         wildcard='Custo files (*.custo)|*.custo',
                         style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL: return
@@ -182,7 +184,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                 self.auto_canvas_construction(event=None)
                     
     def on_save_custo_pressed(self,event):
-        with wx.FileDialog(self, _('Save customization as'), defaultDir=os.getcwd(),
+        with wx.FileDialog(self, 'Save customization as', defaultDir=os.getcwd(),
                         wildcard='Custo files (*.custo)|*.custo',
                         style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
@@ -200,7 +202,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
                 else: print('Unknow instance')
                 
             with open(custofilename, 'w') as outfile:
-                json.dump(data, outfile, indent=4, sort_keys=True)
+                json.dump(data, outfile, indent=4, sort_keys=False)
                   
     def on_paint(self,event):
         dc = wx.PaintDC(self.preview_image)
@@ -208,7 +210,7 @@ class CustoCanvasTab(scrolled.ScrolledPanel):
         greycond = not self.preview_image.IsEnabled() or not os.path.isfile(self.temp_canvas_svg)
         dc.SetBackground(wx.Brush('grey' if greycond else 'white'))
         dc.Clear()
-        svg = wx.svg.SVGimage.CreateFromFile("nocanvas.svg" if greycond else self.temp_canvas_svg)
+        svg = wx.svg.SVGimage.CreateFromFile(resource_path("nocanvas.svg") if greycond else self.temp_canvas_svg)
         dcdim = min(self.preview_image.Size.width, self.preview_image.Size.height)
         imgdim = max(svg.width, svg.height)
         scale = dcdim / imgdim
