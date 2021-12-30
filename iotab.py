@@ -21,6 +21,8 @@ from generationalgooutput import GenerationAlgoOutput, OutputSelection
 from ressourcespath import resource_path
 import json
 import fitz
+from ressourcespath import resource_path
+
 
 class IOTab(FrozenClass, scrolled.ScrolledPanel):
     def __init__(self,parent,main_gui):

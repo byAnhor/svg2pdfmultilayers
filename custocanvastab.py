@@ -17,7 +17,6 @@ import json
 from ressourcespath import resource_path
 
 
-
 class CustoCanvasTab(scrolled.ScrolledPanel):
     def __init__(self,parent,main_gui):
         super(CustoCanvasTab, self).__init__(parent)
