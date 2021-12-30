@@ -12,72 +12,106 @@ from xml.dom import minidom
 from frozenclass import FrozenClass
 
 class From1svgToNpdf(FrozenClass):
-    def __init__(self, temppath):
-        self.temp_path = temppath
-        self.svg_in = None
-        self.json_file = None
+    def __init__(self):
+        self.parent = None
+        self.svg_to_be_layered_filename = None
+        self.svg_to_be_layered_flatten_filename = None
+        self.svg_to_be_layered_fitz_pdf_filename = None
+        self.svg_layered_res_basename = None
+        self._freeze()
 
-    def set_SVG_in(self, filename):
-        self.svg_in = filename
-        self.json_file = self.temp_path + os.path.basename(filename).replace('.svg', '.json')
+    @property
+    def svg_to_be_layered_filename(self): return self.__svg_to_be_layered_filename
+    @svg_to_be_layered_filename.setter
+    def svg_to_be_layered_filename(self, v): 
+        assert v is None or isinstance(v, str), "assert false svg_to_be_layered_filename"
+        self.__svg_to_be_layered_filename = v
 
+    @property
+    def svg_to_be_layered_flatten_filename(self): return self.__svg_to_be_layered_flatten_filename
+    @svg_to_be_layered_flatten_filename.setter
+    def svg_to_be_layered_flatten_filename(self, v): 
+        assert v is None or isinstance(v, str), "assert false svg_to_be_layered_flatten_filename"
+        self.__svg_to_be_layered_flatten_filename = v
+
+    @property
+    def svg_to_be_layered_fitz_pdf_filename(self): return self.__svg_to_be_layered_fitz_pdf_filename
+    @svg_to_be_layered_fitz_pdf_filename.setter
+    def svg_to_be_layered_fitz_pdf_filename(self, v): 
+        assert v is None or isinstance(v, str), "assert false svg_to_be_layered_fitz_pdf_filename"
+        self.__svg_to_be_layered_fitz_pdf_filename = v
+
+    @property
+    def svg_layered_res_basename(self): return self.__svg_layered_res_basename
+    @svg_layered_res_basename.setter
+    def svg_layered_res_basename(self, v): 
+        assert v is None or isinstance(v, str), "assert false svg_layered_res_basename"
+        self.__svg_layered_res_basename = v
+
+   
     def run(self):
-        if self.svg_in is None: return self
+        if self.svg_to_be_layered_filename is None: return 
+        if self.svg_to_be_layered_flatten_filename is None: return 
+        if self.svg_layered_res_basename is None: return 
+        if self.svg_to_be_layered_fitz_pdf_filename is None: return 
         
-        jsondata = dict()
+        print("Generate SVG with splitted layers", self.svg_to_be_layered_filename)
         
-        svgInBase = os.path.basename(self.svg_in)
-        svgInFile = svgInBase.replace('.svg','')
-        fullpdfInFile = self.temp_path + svgInFile + '.fitz.pdf'
-            
-        svgInFileFitz = fitz.open(self.svg_in)
-        svgInFileFitzPage0 = svgInFileFitz.load_page(0)
-        jsondata['full_pattern_svg'] = self.svg_in
-        jsondata['full_pattern_width'] = svgInFileFitzPage0.rect.width
-        jsondata['full_pattern_height'] = svgInFileFitzPage0.rect.height
-        jsondata['temp_path'] = self.temp_path
-        jsondata['layers_filenames'] = dict()
-           
-        pdfInFileFitz = svgInFileFitz.convert_to_pdf()
-        pdfInFileFitz = fitz.open("pdf", pdfInFileFitz)
-        print('SVG -> full PDF : %s'%fullpdfInFile)
-        pdfInFileFitz.save(fullpdfInFile)
+        svgToBeLayeredFitzPdfFile = fitz.open(self.svg_to_be_layered_flatten_filename)
+        svgToBeLayeredFitzPdfFilePage0 = svgToBeLayeredFitzPdfFile.load_page(0)
+        svgToBeLayeredFitzPdfFilePageWidth = svgToBeLayeredFitzPdfFilePage0.rect.width
+        svgToBeLayeredFitzPdfFilePageHeight = svgToBeLayeredFitzPdfFilePage0.rect.height
+
+        # Save a full size PDF version of the flatten SVG file
+        svgToBeLayeredFitzPdfFile = svgToBeLayeredFitzPdfFile.convert_to_pdf()
+        svgToBeLayeredFitzPdfFile = fitz.open("pdf", svgToBeLayeredFitzPdfFile)
+        svgToBeLayeredFitzPdfFile.save(self.svg_to_be_layered_fitz_pdf_filename)
+
+        svgInDoc = minidom.parse(self.svg_to_be_layered_flatten_filename)
         
-        svgInDoc = minidom.parse(self.svg_in)
+        # Build the group/layer hierarchy
         allL = [l for l in svgInDoc.getElementsByTagName('g') if l.getAttribute("inkscape:groupmode") == 'layer']   
-        hierarchyL = dict()
+        layersHierarchy = dict()
         for l in allL:
-            hierarchyL[l] = list()
+            layersHierarchy[l] = list()
             lpn = l.parentNode
             while lpn is not None:
-                if lpn in allL : hierarchyL[l].append(lpn.getAttribute("inkscape:label"))
-                lpn = lpn.parentNode
+                if lpn in allL : layersHierarchy[l].append(lpn.getAttribute("inkscape:label"))
+                lpn = lpn.parentNode                
+
         
+        jsondata = dict()
+                      
+        jsondata['FullSizeWidth'] = svgToBeLayeredFitzPdfFilePageWidth
+        jsondata['FullSizeHeight'] = svgToBeLayeredFitzPdfFilePageHeight
+        jsondata['LayersFilenames'] = dict()
+                   
         for l in reversed(allL):
-            svgInDoc0 = minidom.parse(self.svg_in)
+            svgInDoc0 = minidom.parse(self.svg_to_be_layered_flatten_filename)
             allOL = [ol for ol in svgInDoc0.getElementsByTagName('g') if ol.getAttribute("inkscape:groupmode") == 'layer']
             for ol in allOL:
-                if l.getAttribute("id") != ol.getAttribute("id") and ol.getAttribute("inkscape:label") not in hierarchyL[l]:
+                if l.getAttribute("id") != ol.getAttribute("id") and ol.getAttribute("inkscape:label") not in layersHierarchy[l]:
                     parent = ol.parentNode
                     parent.removeChild(ol)
             str_ = svgInDoc0.toxml()
-            displayStr = "_hidden" if "display:none" in l.getAttribute("style") else "_show"
-            onesvgbase = svgInFile + displayStr + '_LAYER_%s.svg'%(l.getAttribute("inkscape:label"))
-            #jsondata['layers_filenames'][l.getAttribute("id")] = str(onesvgbase)
-            jsondata['layers_filenames'][l.getAttribute("inkscape:label")] = str(onesvgbase)
-            with open(self.temp_path + onesvgbase, "wb") as out:
+            onesvgbase = self.svg_layered_res_basename +  '_%s.svg'%(l.getAttribute("inkscape:label"))
+            hord = 'hidden' if "display:none" in l.getAttribute("style") else 'display'
+            jsondata['LayersFilenames'][l.getAttribute("inkscape:label")] = dict()
+            jsondata['LayersFilenames'][l.getAttribute("inkscape:label")]['display'] = hord
+            jsondata['LayersFilenames'][l.getAttribute("inkscape:label")]['svg'] = str(onesvgbase)
+            jsondata['LayersFilenames'][l.getAttribute("inkscape:label")]['fitzpdf'] = str(onesvgbase).replace('.svg', '.fitz.pdf')
+             
+            with open(jsondata['LayersFilenames'][l.getAttribute("inkscape:label")]['svg'], "wb") as out:
                 out.write(str_.encode("UTF-8", "ignore")) 
-            print('SVG -> %s layer SVG : %s'%(l.getAttribute("inkscape:label"), onesvgbase))
 
-        for k in jsondata['layers_filenames'].keys(): 
-            onesvgfile = jsondata['layers_filenames'][k]
-            onepdffile = onesvgfile.replace('.svg', '.fitz.pdf')
-            svgInFileFitz = fitz.open(self.temp_path + onesvgfile)
-            svgInFileFitz = svgInFileFitz.convert_to_pdf()
-            svgInFileFitz = fitz.open("pdf", svgInFileFitz)
-            svgInFileFitz.save(self.temp_path + onepdffile)
-            print('SVG -> 1 layer PDF : %s'%onepdffile)
+        for k in jsondata['LayersFilenames'].keys(): 
+            onesvgfile = jsondata['LayersFilenames'][k]['svg']
+            onepdffile = jsondata['LayersFilenames'][k]['fitzpdf']
+            svgToBeLayeredFitzPdfFile = fitz.open(onesvgfile)
+            svgToBeLayeredFitzPdfFile = svgToBeLayeredFitzPdfFile.convert_to_pdf()
+            svgToBeLayeredFitzPdfFile = fitz.open("pdf", svgToBeLayeredFitzPdfFile)
+            svgToBeLayeredFitzPdfFile.save(onepdffile)
             
-        with open(self.json_file, 'w') as outfile:
+        with open(self.svg_layered_res_basename + '.json', 'w') as outfile:
             json.dump(jsondata, outfile)
-        return self.json_file
+        return jsondata
