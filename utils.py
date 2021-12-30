@@ -18,6 +18,7 @@ version_string = 'v0.1-beta'
 locales_full = ('de_DE','es_ES','fr_FR','nl_NL','cs_CZ')
 locales_short = ('de','es','fr','nl','en','cs')
 
+
 def setup_locale():
     language_warning = None
 
